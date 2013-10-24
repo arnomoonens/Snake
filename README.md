@@ -12,6 +12,7 @@ We're dooooomed
 - [Intel CPU 8086/8088 Instruction List](http://ftp.utcluj.ro/pub/users/nedevschi/CA/I8086/8086InstrSet/rtlcode86.pdf)
 - [Intel Pentium Instruction Set Reference](http://faydoc.tripod.com/cpu/)
 - [STOS/STOSB/STOSW/STOSD--Store String](http://www.jaist.ac.jp/iscenter-new/mpc/altix/altixdata/opt/intel/vtune/doc/users_guide/mergedProjects/analyzer_ec/mergedProjects/reference_olh/mergedProjects/instructions/instruct32_hh/vc304.htm)
+
 ##Andere
 - [Sublime Text 2 Tutorial](https://tutsplus.com/course/improve-workflow-in-sublime-text-2/)
 - [Markdown tutorial](http://daringfireball.net/projects/markdown/basics): Voor het opstellen van dit Readme document
