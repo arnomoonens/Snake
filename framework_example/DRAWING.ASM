@@ -105,14 +105,15 @@ clearScreenBuffer PROC NEAR
 	push	di
 	push	es
 	
-	cld
-	mov		ax, seg screenBuffer
-	mov		es, ax
+	cld ;Clear direction flag
+	mov		ax, seg screenBuffer ; wijs met ax naar het segment van de screenBuffer
+	mov		es, ax ;zet es naar ax, dus de screenBuffer
 	mov		di, offset screenBuffer
-	mov		cx, 64000 / 2
-	xor		ax, ax
-	rep		stosw
+	mov		cx, 64000 / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
+	xor		ax, ax ;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
+	rep		stosw ;herhaal stosw cx keer. Stosw zet ex:di op ax
 	
+	;Haal de overschreven waarden terug
 	pop	es
 	pop	di
 	pop	cx
@@ -141,7 +142,7 @@ updateScreen PROC NEAR
 	cld
 	mov		cx, 64000 / 2
 	waitVBlank	; wait for a VB (modifies AX and DX)
-	rep		movsw	; blit to screen	
+	rep		movsw	; blit to screen	Move word at address DS:(E)SI to address ES:(E)DI  (ESI or SI depending on the address-size attribute of the instruction, 32 or 16, respectively)
 	
 	pop		es
 	pop		ds
