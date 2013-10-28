@@ -1,10 +1,8 @@
 computersystemenproject
 =======================
 
-Project voor Computersystemen: Programma maken met Assembly 8086
+Project voor Computersystemen: Snake maken met Assembly 8086
 
-#Huidige staat van het project
-We're dooooomed
 #Handige links
 ##Ivm Assembly zelf
 - [Intro to ASM](http://www.shsu.edu/~csc_tjm/spring2005/cs272/intro_to_asm.html)
@@ -12,6 +10,11 @@ We're dooooomed
 - [Intel CPU 8086/8088 Instruction List](http://ftp.utcluj.ro/pub/users/nedevschi/CA/I8086/8086InstrSet/rtlcode86.pdf)
 - [Intel Pentium Instruction Set Reference](http://faydoc.tripod.com/cpu/)
 - [STOS/STOSB/STOSW/STOSD--Store String](http://www.jaist.ac.jp/iscenter-new/mpc/altix/altixdata/opt/intel/vtune/doc/users_guide/mergedProjects/analyzer_ec/mergedProjects/reference_olh/mergedProjects/instructions/instruct32_hh/vc304.htm)
+
+##Assembly Projecten van anderen
+- [Snake](http://he.scribd.com/doc/114620920/Snake-Code-for-EMU8086?secret_password=10ila7iztx3wd3h77q1v)
+- [Space Invaders](https://github.com/angryzor/space_invaders_8086)
+- [Connect 4](https://github.com/mazenwagdy/connect-4/blob/master/code.asm)
 
 ##Andere
 - [Sublime Text 2 Tutorial](https://tutsplus.com/course/improve-workflow-in-sublime-text-2/)
