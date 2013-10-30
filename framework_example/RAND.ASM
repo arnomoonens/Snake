@@ -43,16 +43,18 @@ randLinear PROC NEAR
 	mul	bx		; 31 * z
 	; result dx:ax, higher value in dx, lower value in ax
 	add	ax, 13
-	adc	dx, 0
+	adc	dx, 0   ;ADC = Add With Carry Bit
 	mov	bx, 19683
 	div	bx		; div by 19683
 	; result ax:dx, quotient in ax, remainder in dx
-	mov	ax, dx
+	mov	ax, dx ;move remainder to ax
 
 	; keep the number in cx and do some mixing
 	mov	cx,	ax
-	xchg	cl, ch
-	rol	cx, 1
+	xchg	cl, ch ; XCHG = change value of the 2 operands
+	rol	cx, 1 ; ROL = Rotate operand1 left. The number of rotates is set by operand2. 
+	;shift all bits left, the bit that goes off is set to CF 
+	;and the same bit is inserted to the right-most position.
 
 	; prepare second generated number (range [0;19683[)
 	mov	bx, 31		; 31D
@@ -63,11 +65,11 @@ randLinear PROC NEAR
 	mov	bx, 19683
 	div	bx		; div by 19683
 	; result ax:dx, quotient in ax, remainder in dx
-	mov	ax, dx
+	mov	ax, dx ;move remainder to ax
 
 	mov	[randSeed], ax	; store for next rand call
 
-	xor	ax, cx	; combine the two rands into a 16-bit number
+	xor	ax, cx	; combine the two rands into a 16-bit number, stored in AX
 	
 	pop	dx
 	pop	cx
@@ -96,14 +98,14 @@ randInit PROC FAR
 	mov	cx, 250
 	mov	di, offset randR250Buf
 @randInit_fill:
-	call	randLinear	; get a simple rand
+	call	randLinear	; get a simple rand in AX
 	mov	[di], ax
 	add	di, 2
 	loop	@randInit_fill
 
 	; Correct values
 	mov	cx, 16
-	mov	di, offset randR250Buf
+	mov	di, offset randR250Buf        ;vanaf hier zijn ze mij kwijt (Arno??)
 	add	di, 6
 	mov	ax,	0ffffh
 	mov	bx, 08000h
