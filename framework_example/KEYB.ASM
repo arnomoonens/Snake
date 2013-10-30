@@ -44,9 +44,9 @@ installKeyboardHandler PROC FAR
 	mov		cx, (128 / 2) + 1
 	mov		di, offset __keyboardState
 	xor		ax, ax
-	rep		stosw ;Store AX at address ES:DI
-	; AX wordt naar 0 gezet en ES:DI (dus __originalKeyboardHandler:__keyboardState bevat) wordt gevuld met 65 nullen
-	; __keyboardState is 128 groot, dus voor de helft gevuld met nullen (why??)
+	rep		stosw ;Store AX at address ES:DI (AX is used for words, 2 bytes each)
+	; AX wordt naar 0 gezet en ES:DI (dus __originalKeyboardHandler:__keyboardState bevat) wordt gevuld met nullen, 65 keer (zie cx)
+	; __keyboardState is 128 groot, maar elk woord is 2 bytes groot en The DI register is incremented or decremented by 2 for word operations
 	
 	; store current handler
 	mov		ax, 3509h			; get current interrupt handler 09h
