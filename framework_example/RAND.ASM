@@ -95,22 +95,22 @@ randInit PROC FAR
 	mov	[randR250Idx], 0
 	
 	; Fill the randR250Buf with simple rand values
-	mov	cx, 250
-	mov	di, offset randR250Buf
-@randInit_fill:
+	mov	cx, 250 ;counter voor loop in randInit_fill
+	mov	di, offset randR250Buf ;begin de loop bij de plaats waar de randR250Buf begint (vector met 250 plaatsen)
+@randInit_fill: ;Vul de buffer met random getallen
 	call	randLinear	; get a simple rand in AX
-	mov	[di], ax
-	add	di, 2
-	loop	@randInit_fill
+	mov	[di], ax ;op de plaats van di: zet de AX die je van randLinear gekregen hebt
+	add	di, 2 ;Een woord = 2 bytes
+	loop	@randInit_fill ;doe voort totdat cx 0 is
 
 	; Correct values
-	mov	cx, 16
-	mov	di, offset randR250Buf        ;vanaf hier zijn ze mij kwijt (Arno??)
-	add	di, 6
+	mov	cx, 16 ;counter voor randInit_loop1
+	mov	di, offset randR250Buf        ;begin (niet) opnieuw waar de randR250Buf begint
+	add	di, 6 ;maar wel 3 plaatsen verder (3*2) (nog geen idee waarom)
 	mov	ax,	0ffffh
 	mov	bx, 08000h
 @randInit_loop1:
-	and	[di], ax
+	and	[di], ax ;geen idee wat hier de bedoeling van is
 	or	[di], bx
 	shr	ax, 1
 	shr	bx, 1
