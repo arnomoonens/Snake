@@ -142,7 +142,9 @@ updateScreen PROC NEAR
 	cld
 	mov		cx, 64000 / 2
 	waitVBlank	; wait for a VB (modifies AX and DX)
-	rep		movsw	; blit to screen	Move word at address DS:(E)SI to address ES:(E)DI  (ESI or SI depending on the address-size attribute of the instruction, 32 or 16, respectively)
+	rep		movsw	; blit to screen	
+	;Move word at address DS:(E)SI to address ES:(E)DI  
+	;(ESI or SI depending on the address-size attribute of the instruction, 32 or 16, respectively)
 	
 	pop		es
 	pop		ds
@@ -160,12 +162,14 @@ renderWorld PROC NEAR
 	call	clearScreenBuffer
 
 	; draw a random rectangle
-	call	rand
-	and		ax, 0ffh
+	call	rand ;laat een willekeurige waarde in AX achter
+	and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
 	push	ax
-	call	rand
-	and		ax, 07fh
+	call	rand ;laat een willekeurige waarde in AX achter
+	and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
 	push	ax
+	;push 2 waarden op de stack en roep drawRect
+	;deze 2 waarden zullen lengte en breedte zijn!
 	call 	drawRect
 
 	; draw the screen buffer
@@ -245,22 +249,24 @@ drawRect PROC NEAR
 	mov	es, ax
 	
 	; Calculate posX
-	mov	ax, [bp + 4][2]
+	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]?????
 	neg	ax
 	add	ax, SCREENW
-	shr	ax, 1
+	shr	ax, 1  
+	;UNSIGNED bitwise shift right, dus delen door 2
+	;niet hetzelfde als sar, want sar is SIGNED
 	mov	bx, ax		; posX is in BX now
 	
 	; Calculate posY
-	mov	ax, [bp + 4][0]
+	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]?????
 	neg	ax
 	add	ax, SCREENH
 	shr	ax, 1		; and posY is in AX
 	
 	; Calculate offset of top-left corner
 	mov	dx, SCREENW
-	mul	dx		; AX = posY * SCREENW
-	add	ax, bx		; AX now contains start offset of rectangle
+	mul	dx		; AX = posY (in AX) * SCREENW
+	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
 	add	ax, offset screenBuffer
 	add	ax, [hardOffset]
 	
@@ -270,6 +276,10 @@ drawRect PROC NEAR
 	mov	al, 15	; color
 	cld
 	rep	stosb	; draw	
+	;STOSB gaat de byte in AL (dus de kleur) 
+	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
+	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
+	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
 	
 	; Draw right vertical line	
 	mov		cx, [bp + 4][0]	; rect H
@@ -281,8 +291,12 @@ drawRect PROC NEAR
 	
 	; Draw bottom horizontal line
 	mov	cx, [bp+4][2]	; rect W
-	std	; count backwards
+	std	; set direction flag to decrement di and si
 	rep	stosb	; draw
+	;STOSB gaat de byte in AL (dus de kleur) 
+	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
+	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
+	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
 	
 	; Draw left vertical line
 	mov	cx, [bp + 4][0]	; rect H
