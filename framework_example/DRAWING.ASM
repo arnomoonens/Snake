@@ -156,7 +156,7 @@ updateScreen PROC NEAR
 	ret		0
 updateScreen ENDP
 
-renderWorld PROC NEAR
+renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
 	push	ax
 	
 	call	clearScreenBuffer
@@ -249,7 +249,7 @@ drawRect PROC NEAR
 	mov	es, ax
 	
 	; Calculate posX
-	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]?????
+	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
 	neg	ax
 	add	ax, SCREENW
 	shr	ax, 1  
@@ -258,7 +258,7 @@ drawRect PROC NEAR
 	mov	bx, ax		; posX is in BX now
 	
 	; Calculate posY
-	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]?????
+	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
 	neg	ax
 	add	ax, SCREENH
 	shr	ax, 1		; and posY is in AX
@@ -268,7 +268,7 @@ drawRect PROC NEAR
 	mul	dx		; AX = posY (in AX) * SCREENW
 	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
 	add	ax, offset screenBuffer
-	add	ax, [hardOffset]
+	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
 	
 	; Draw upper horizontal line
 	mov	di, ax
