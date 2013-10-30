@@ -45,6 +45,8 @@ installKeyboardHandler PROC FAR
 	mov		di, offset __keyboardState
 	xor		ax, ax
 	rep		stosw
+	; AX wordt naar 0 gezet en DI (dat __keyboardState bevat) wordt gevuld met 65 nullen
+	; __keyboardState is 128 groot, dus voor de helft gevuld met nullen (why??)
 	
 	; store current handler
 	mov		ax, 3509h			; get current interrupt handler 09h
