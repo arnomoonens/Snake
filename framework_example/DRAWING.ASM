@@ -20,9 +20,10 @@ SCREENH		equ 200
 
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
-oldVideoMode	db ?
 
+oldVideoMode	db ?
 hardOffset	dw 0 ; test variable
+msg	db "THIS IS A SNAKE GAME$"
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -162,15 +163,26 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	call	clearScreenBuffer
 
 	; draw a random rectangle
-	call	rand ;laat een willekeurige waarde in AX achter
-	and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
-	push	ax
-	call	rand ;laat een willekeurige waarde in AX achter
-	and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
-	push	ax
+
+	;call	rand ;laat een willekeurige waarde in AX achter
+	;and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
+	;push	ax
+	;call	rand ;laat een willekeurige waarde in AX achter
+	;and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
+	;push	ax
+
+	;Een testje van de Jens!
+	mov ax, 310
+	push ax
+	mov ax, 170
+	push ax
+	;Een rechthoek van 50 op 30?? jaja zij ma zeker da da werkt!
 	;push 2 waarden op de stack en roep drawRect
 	;deze 2 waarden zullen lengte en breedte zijn!
 	call 	drawRect
+
+
+	call    somethingStupid
 
 	; draw the screen buffer
 	call 	updateScreen
@@ -178,6 +190,20 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	pop	ax
 	ret	0
 renderWorld ENDP
+
+somethingStupid PROC NEAR
+	push ax
+	push dx
+
+	mov	ah, 09h		; select function 09h
+	mov	dx, offset msg	; load offset address of msg (in data segment)
+	int	21h		; call DOS, function 09h, print to stdout
+
+	pop dx
+	pop ax
+
+	ret 0
+somethingStupid ENDP
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
 handleInput PROC NEAR
