@@ -18,12 +18,15 @@ include KEYB.INC
 SCREENW		equ 320
 SCREENH		equ 200
 
+
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
 
 oldVideoMode	db ?
 hardOffset	dw 0 ; test variable
 msg	db "THIS IS A SNAKE GAME$"
+;HORIZ_MOV db 0
+;VERT_MOV db 0
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -163,6 +166,19 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	call	clearScreenBuffer
 
 	; draw a random rectangle
+	mov ax, 310
+	push ax
+	mov ax, 170
+	push ax
+	;push 2 waarden op de stack en roep drawRect
+	;deze 2 waarden zullen lengte en breedte zijn!
+	call 	drawRect
+
+	mov ax, 10
+	push ax
+	mov ax, 10
+	push ax
+	call drawCandy
 
 	;call	rand ;laat een willekeurige waarde in AX achter
 	;and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
@@ -170,19 +186,12 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	;call	rand ;laat een willekeurige waarde in AX achter
 	;and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
 	;push	ax
-
-	;Een testje van de Jens!
-	mov ax, 310
+	;call    drawRect
+	mov ax, 10
 	push ax
-	mov ax, 170
+	mov ax, 10
 	push ax
-	;Een rechthoek van 50 op 30?? jaja zij ma zeker da da werkt!
-	;push 2 waarden op de stack en roep drawRect
-	;deze 2 waarden zullen lengte en breedte zijn!
-	call 	drawRect
-
-
-	call    somethingStupid
+	call drawSnake
 
 	; draw the screen buffer
 	call 	updateScreen
@@ -190,20 +199,6 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	pop	ax
 	ret	0
 renderWorld ENDP
-
-somethingStupid PROC NEAR
-	push ax
-	push dx
-
-	mov	ah, 09h		; select function 09h
-	mov	dx, offset msg	; load offset address of msg (in data segment)
-	int	21h		; call DOS, function 09h, print to stdout
-
-	pop dx
-	pop ax
-
-	ret 0
-somethingStupid ENDP
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
 handleInput PROC NEAR
@@ -256,6 +251,53 @@ handleInput PROC NEAR
 	pop	es
 	ret 0
 handleInput ENDP
+
+;inputLeftRight PROC NEAR
+;	cmp al, 4bh
+;	JE @LEFT
+;	cmp al, 4dh
+;	JE @RIGHT
+;	JMP @DONE
+;
+;	@LEFT:
+;	mov ax, [HORIZ_MOV]
+;	sub ax, 1
+;	mov [HORIZ_MOV], ax
+;	JMP @DONE
+;
+;	@RIGHT:
+;	mov ax, [HORIZ_MOV]
+;	add ax, 1
+;	mov [HORIZ_MOV], ax
+;	JMP @DONE
+;
+;	@DONE:
+;
+;	ret 0
+;inputLeftRight ENDP
+;
+;inputUpDown PROC NEAR
+;	cmp al, 48h
+;	JE @UP
+;	cmp al, 50h
+;	JE @DOWN
+;	JMP @DONE
+;
+;	@UP:
+;	mov ax, VERT_MOV
+;	add ax, 1
+;	mov VERT_MOV, ax
+;	JMP @DONE
+;
+;	@DOWN:
+;	mov ax, VERT_MOV
+;	sub ax, 1
+;	mov VERT_MOV, ax
+;	JMP @done
+;
+;	@DONE:
+;	ret 0
+;inputUpDown ENDP
 
 ; Draw a rectangle at the center of the screen buffer.
 ; W, H passed on stack.
@@ -310,7 +352,7 @@ drawRect PROC NEAR
 	; Draw right vertical line	
 	mov		cx, [bp + 4][0]	; rect H
 	dec	di
-@@:
+	@@:
 	mov	es:[di], al	; set pixel
 	add	di, SCREENW	; jump to next pixel (on next line)
 	loop	@B
@@ -327,7 +369,7 @@ drawRect PROC NEAR
 	; Draw left vertical line
 	mov	cx, [bp + 4][0]	; rect H
 	inc di
-@@:
+	@@:
 	mov	es:[di], al	; set pixel
 	sub	di, SCREENW	; jump to next pixel (on next line)
 	loop	@B
@@ -343,6 +385,182 @@ drawRect PROC NEAR
 	pop	bp
 	ret	4
 drawRect ENDP
+
+drawCandy PROC NEAR
+	push	bp
+	mov	bp, sp
+	
+	push	ax
+	push	bx
+	push	cx
+	push	dx
+	push	di
+	push	es
+	
+	; set segment
+	mov	ax, seg screenBuffer
+	mov	es, ax
+	
+	; Calculate posX
+	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
+	mov bx, ax
+	call rand
+	and ax, 64000
+	neg	ax
+	add	ax, SCREENW
+	shr	ax, 1  
+	;UNSIGNED bitwise shift right, dus delen door 2
+	;niet hetzelfde als sar, want sar is SIGNED
+	mov	bx, ax		; posX is in BX now
+	
+	; Calculate posY
+	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
+	mov cx, ax
+	call rand
+	and ax, 64000
+	neg	ax
+	add	ax, SCREENH
+	shr	ax, 1		; and posY is in AX
+	
+	; Calculate offset of top-left corner
+	mov	dx, SCREENW
+	mul	dx		; AX = posY (in AX) * SCREENW
+	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
+	add	ax, offset screenBuffer
+	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
+	
+	; Draw upper horizontal line
+	mov	di, ax
+	mov	cx, [bp + 4][2]	; rect W
+	mov	al, 15	; color
+	cld
+	rep	stosb	; draw	
+	;STOSB gaat de byte in AL (dus de kleur) 
+	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
+	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
+	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
+	
+	; Draw right vertical line	
+	mov		cx, [bp + 4][0]	; rect H
+	dec	di
+	@@:
+	mov	es:[di], al	; set pixel
+	add	di, SCREENW	; jump to next pixel (on next line)
+	loop	@B
+	
+	; Draw bottom horizontal line
+	mov	cx, [bp+4][2]	; rect W
+	std	; set direction flag to decrement di and si
+	rep	stosb	; draw
+	;STOSB gaat de byte in AL (dus de kleur) 
+	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
+	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
+	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
+	
+	; Draw left vertical line
+	mov	cx, [bp + 4][0]	; rect H
+	inc di
+	@@:
+	mov	es:[di], al	; set pixel
+	sub	di, SCREENW	; jump to next pixel (on next line)
+	loop	@B
+
+	; We are done
+	pop	es
+	pop	di
+	pop	dx
+	pop	cx
+	pop	bx
+	pop	ax
+	; return
+	pop	bp
+	ret	4
+drawCandy ENDP
+
+drawSnake PROC NEAR
+	push	bp
+	mov	bp, sp
+	
+	push	ax
+	push	bx
+	push	cx
+	push	dx
+	push	di
+	push	es
+	
+	; set segment
+	mov	ax, seg screenBuffer
+	mov	es, ax
+	
+	; Calculate posX
+	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
+	neg	ax
+	add	ax, SCREENW
+	shr	ax, 1  
+	;UNSIGNED bitwise shift right, dus delen door 2
+	;niet hetzelfde als sar, want sar is SIGNED
+	mov	bx, ax		; posX is in BX now
+	
+	; Calculate posY
+	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
+	neg	ax
+	add	ax, SCREENH
+	shr	ax, 1		; and posY is in AX
+	
+	; Calculate offset of top-left corner
+	mov	dx, SCREENW
+	mul	dx		; AX = posY (in AX) * SCREENW
+	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
+	add	ax, offset screenBuffer
+	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
+	
+	; Draw upper horizontal line
+	mov	di, ax
+	mov	cx, [bp + 4][2]	; rect W
+	mov	al, 15	; color
+	cld
+	rep	stosb	; draw	
+	;STOSB gaat de byte in AL (dus de kleur) 
+	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
+	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
+	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
+	
+	; Draw right vertical line	
+	mov		cx, [bp + 4][0]	; rect H
+	dec	di
+	@@:
+	mov	es:[di], al	; set pixel
+	add	di, SCREENW	; jump to next pixel (on next line)
+	loop	@B
+	
+	; Draw bottom horizontal line
+	mov	cx, [bp+4][2]	; rect W
+	std	; set direction flag to decrement di and si
+	rep	stosb	; draw
+	;STOSB gaat de byte in AL (dus de kleur) 
+	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
+	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
+	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
+	
+	; Draw left vertical line
+	mov	cx, [bp + 4][0]	; rect H
+	inc di
+	@@:
+	mov	es:[di], al	; set pixel
+	sub	di, SCREENW	; jump to next pixel (on next line)
+	loop	@B
+
+	; We are done
+	pop	es
+	pop	di
+	pop	dx
+	pop	cx
+	pop	bx
+	pop	ax
+	; return
+	pop	bp
+	ret	4
+drawSnake ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
