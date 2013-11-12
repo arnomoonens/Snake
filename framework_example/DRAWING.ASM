@@ -172,17 +172,18 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	;push	ax
 
 	;Een testje van de Jens!
-	mov ax, 310
-	push ax
-	mov ax, 170
-	push ax
+	;mov ax, 310
+	;push ax
+	;mov ax, 170
+	;push ax
 	;Een rechthoek van 50 op 30?? jaja zij ma zeker da da werkt!
 	;push 2 waarden op de stack en roep drawRect
 	;deze 2 waarden zullen lengte en breedte zijn!
-	call 	drawRect
+	;call 	drawRect
 
 
-	call    somethingStupid
+	;call    somethingStupid
+	call drawFilledRect
 
 	; draw the screen buffer
 	call 	updateScreen
@@ -190,6 +191,40 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	pop	ax
 	ret	0
 renderWorld ENDP
+
+drawFilledRect PROC NEAR ;Tekent een blokske van 10 bij 10
+	push ax
+	push dx
+
+	mov ax, 0a000h
+	mov es, ax
+	mov dx, offset palette
+	xor bx, bx
+	mov cx, 2
+	mov ax, 13h
+	int 10h
+
+	mov bx, 23845 ;Beginplaats
+	xor dx, dx
+	START:
+	mov al, 44h
+	mov	di, bx
+	mov	cx, 10	; lengte van het vierkant
+	mov	al, 15	; color
+	cld
+	rep	stosb	; draw 
+
+	ADD bx, 320 ;lijn opschuiven naar beneden
+	inc dx ;counter optellen
+	mov ax, 10 ;hoogte van het vierkant
+	cmp dx, ax
+	JL START
+
+	pop dx
+	pop ax
+	ret 0
+
+drawFilledRect ENDP
 
 somethingStupid PROC NEAR
 	push ax
