@@ -25,8 +25,8 @@ SCREENH		equ 200
 oldVideoMode	db ?
 hardOffset	dw 0 ; test variable
 msg	db "THIS IS A SNAKE GAME$"
-;HORIZ_MOV db 0
-;VERT_MOV db 0
+HORIZ_MOV dw 0
+VERT_MOV dw 0
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -166,19 +166,19 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	call	clearScreenBuffer
 
 
-	mov ax, 310
-	push ax
-	mov ax, 170
-	push ax
+	;mov ax, 310
+	;push ax
+	;mov ax, 170
+	;push ax
 	;push 2 waarden op de stack en roep drawRect
 	;deze 2 waarden zullen lengte en breedte zijn!
 	;call 	drawRect
 
-	mov ax, 10
-	push ax
-	mov ax, 10
-	push ax
-	call drawCandy
+	;mov ax, 10
+	;push ax
+	;mov ax, 10
+	;push ax
+	;call drawCandy ;tekent vierkant op random positie
 
 	;call	rand ;laat een willekeurige waarde in AX achter
 	;and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
@@ -187,11 +187,13 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	;and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
 	;push	ax
 	;call    drawRect
+
 	mov ax, 10
 	push ax
 	mov ax, 10
 	push ax
 	call drawSnake
+
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	; draw the screen buffer
@@ -304,54 +306,54 @@ handleInput PROC NEAR
 @done:
 	pop	es
 	ret 0
-handleInput ENDP
+handleInput ENDP	
 
-;inputLeftRight PROC NEAR
-;	cmp al, 4bh
-;	JE @LEFT
-;	cmp al, 4dh
-;	JE @RIGHT
-;	JMP @DONE
-;
-;	@LEFT:
-;	mov ax, [HORIZ_MOV]
-;	sub ax, 1
-;	mov [HORIZ_MOV], ax
-;	JMP @DONE
-;
-;	@RIGHT:
-;	mov ax, [HORIZ_MOV]
-;	add ax, 1
-;	mov [HORIZ_MOV], ax
-;	JMP @DONE
-;
-;	@DONE:
-;
-;	ret 0
-;inputLeftRight ENDP
-;
-;inputUpDown PROC NEAR
-;	cmp al, 48h
-;	JE @UP
-;	cmp al, 50h
-;	JE @DOWN
-;	JMP @DONE
-;
-;	@UP:
-;	mov ax, VERT_MOV
-;	add ax, 1
-;	mov VERT_MOV, ax
-;	JMP @DONE
-;
-;	@DOWN:
-;	mov ax, VERT_MOV
-;	sub ax, 1
-;	mov VERT_MOV, ax
-;	JMP @done
-;
-;	@DONE:
-;	ret 0
-;inputUpDown ENDP
+inputLeftRight PROC NEAR
+	cmp al, 4bh
+	JE @LEFT
+	cmp al, 4dh
+	JE @RIGHT
+	JMP @DONE
+
+	@LEFT:
+	mov ax, offset HORIZ_MOV
+	sub ax, 1
+	mov [HORIZ_MOV], ax
+	JMP @DONE
+
+	@RIGHT:
+	mov ax, offset HORIZ_MOV
+	add ax, 1
+	mov [HORIZ_MOV], ax
+	JMP @DONE
+
+	@DONE:
+
+	ret 0
+inputLeftRight ENDP
+
+inputUpDown PROC NEAR
+	cmp al, 48h
+	JE @UP
+	cmp al, 50h
+	JE @DOWN
+	JMP @DONE
+
+	@UP:
+	mov ax, offset VERT_MOV
+	add ax, 1
+	mov [VERT_MOV], ax
+	JMP @DONE
+
+	@DOWN:
+	mov ax, offset VERT_MOV
+	sub ax, 1
+	mov [VERT_MOV], ax
+	JMP @done
+
+	@DONE:
+	ret 0
+inputUpDown ENDP
 
 ; Draw a rectangle at the center of the screen buffer.
 ; W, H passed on stack.
@@ -554,12 +556,14 @@ drawSnake PROC NEAR
 	;UNSIGNED bitwise shift right, dus delen door 2
 	;niet hetzelfde als sar, want sar is SIGNED
 	mov	bx, ax		; posX is in BX now
+	add bx, offset HORIZ_MOV
 	
 	; Calculate posY
 	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
 	neg	ax
 	add	ax, SCREENH
 	shr	ax, 1		; and posY is in AX
+	add ax, offset VERT_MOV
 	
 	; Calculate offset of top-left corner
 	mov	dx, SCREENW
