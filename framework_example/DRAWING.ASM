@@ -272,7 +272,6 @@ handleInput PROC NEAR
 	mov	al, es:[__keyboardState][SCANCODE_UP]	; test UP key
 	cmp	al, 0
 	jz @F	; jump next
-	; call some function to handle this key
 	mov	ax, SCREENW
 	sub [hardOffset], ax
 	sub [hardOffset], ax
@@ -280,22 +279,22 @@ handleInput PROC NEAR
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
 	jz @F	; jump next
-	; call some function to handle this key
 	mov	ax, SCREENW
+
 	add [hardOffset], ax
 	add [hardOffset], ax
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
 	cmp	al, 0
 	jz @F	; jump next
-	; call some function to handle this key
+
 	dec [hardOffset]
 	dec [hardOffset]
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp	al, 0
 	jz @F	; jump next
-	; call some function to handle this key
+
 	inc [hardOffset]
 	inc [hardOffset]
 @@:
@@ -307,53 +306,6 @@ handleInput PROC NEAR
 	pop	es
 	ret 0
 handleInput ENDP	
-
-inputLeftRight PROC NEAR
-	cmp al, 4bh
-	JE @LEFT
-	cmp al, 4dh
-	JE @RIGHT
-	JMP @DONE
-
-	@LEFT:
-	mov ax, offset HORIZ_MOV
-	sub ax, 1
-	mov [HORIZ_MOV], ax
-	JMP @DONE
-
-	@RIGHT:
-	mov ax, offset HORIZ_MOV
-	add ax, 1
-	mov [HORIZ_MOV], ax
-	JMP @DONE
-
-	@DONE:
-
-	ret 0
-inputLeftRight ENDP
-
-inputUpDown PROC NEAR
-	cmp al, 48h
-	JE @UP
-	cmp al, 50h
-	JE @DOWN
-	JMP @DONE
-
-	@UP:
-	mov ax, offset VERT_MOV
-	add ax, 1
-	mov [VERT_MOV], ax
-	JMP @DONE
-
-	@DOWN:
-	mov ax, offset VERT_MOV
-	sub ax, 1
-	mov [VERT_MOV], ax
-	JMP @done
-
-	@DONE:
-	ret 0
-inputUpDown ENDP
 
 ; Draw a rectangle at the center of the screen buffer.
 ; W, H passed on stack.
@@ -556,14 +508,12 @@ drawSnake PROC NEAR
 	;UNSIGNED bitwise shift right, dus delen door 2
 	;niet hetzelfde als sar, want sar is SIGNED
 	mov	bx, ax		; posX is in BX now
-	add bx, offset HORIZ_MOV
 	
 	; Calculate posY
 	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
 	neg	ax
 	add	ax, SCREENH
 	shr	ax, 1		; and posY is in AX
-	add ax, offset VERT_MOV
 	
 	; Calculate offset of top-left corner
 	mov	dx, SCREENW
