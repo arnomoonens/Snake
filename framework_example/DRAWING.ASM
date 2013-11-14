@@ -214,8 +214,19 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 13h
 	int 10h
 
-	mov bx, 23845 ;Beginplaats
+
+ 	mov bx, 2380 ;beginplaats om blokjes te tekenen
+ 	mov cx, 2450 ;eindplaats om blokjes te tekenen
+ 	MOVING:
+ 	xor dx, dx
+ 	push bx ;begin en
+ 	push cx ;eindplaats op stack zetten
+ 	mov ax, 10
+ 	mul bx ;beginplaats voor blokje berekenen ( startpositie * 10)
+ 	mov bx, ax
+	;mov bx, 23845 ;Beginplaats
 	xor dx, dx
+	xor ax, ax
 	START:
 	mov al, 44h
 	mov	di, bx
@@ -229,6 +240,11 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 10 ;hoogte van het vierkant
 	cmp dx, ax
 	JL START
+	pop cx
+	pop bx
+	inc bx
+	cmp bx, cx
+	JL MOVING
 
 	pop dx
 	pop ax
