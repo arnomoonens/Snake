@@ -217,8 +217,8 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	int 10h
 
 
- 	mov bx, 2380 ;beginplaats om blokjes te tekenen
- 	mov cx, 2450 ;eindplaats om blokjes te tekenen
+ 	mov bx, 6111 ;beginplaats om blokjes te tekenen
+ 	mov cx, 6111 ;eindplaats om blokjes te tekenen
  	MOVING:
  	xor dx, dx
  	push bx ;begin en
