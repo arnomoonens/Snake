@@ -208,7 +208,7 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push ax
 	push dx
 
-	mov ax, 0a000h
+	mov ax, offset screenBuffer
 	mov es, ax
 	mov dx, offset palette
 	xor bx, bx
@@ -216,19 +216,37 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 13h
 	int 10h
 
+	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + ((rest(Bloknr/32) + 1) * 10) - 10
+	xor dx, dx
+	xor ax, ax
+	xor cx, cx
+	mov ax, 639 ;Bloknr
+	mov bx, 32 ;bereidt deling voor
+	div bx ;ax = bloknr/32, hier 0
+	mov bx, 3200
+	push dx ;houd rest na deling bij
+	xor dx, dx ;voorbereiding voor vermenigvuldiging
+	mul bx ;ax = (Bloknr/32) * 3200, hier 0
+	pop dx ;gebruik rest na deling (rest(bloknr/32))
+	push ax ;(Bloknr/32) * 3200
+	inc dx ;(rest(bloknr/32) + 1, hier 3
+	mov ax, 10
+	xor dx, dx ;voorbereiding deling
+	mul dx ;((rest(bloknr/32) + 1) * 10, hier 30
+	pop bx
+	add bx, ax;  (Bloknr/32) * 3200) + (((rest(bloknr/32) + 1) * 10)
+	sub bx, 10 ;Bloknr/32) * 3200) + (((rest(bloknr/32) + 1) * 10) - 10
 
- 	mov bx, 6111 ;beginplaats om blokjes te tekenen
- 	mov cx, 6111 ;eindplaats om blokjes te tekenen
- 	MOVING:
- 	xor dx, dx
- 	push bx ;begin en
- 	push cx ;eindplaats op stack zetten
- 	mov ax, 10
- 	mul bx ;beginplaats voor blokje berekenen ( startpositie * 10)
- 	mov bx, ax
+
+ 	;mov bx, 61110 ;beginplaats om blokjes te tekenen
+ 	;xor dx, dx
+ 	;push bx ;begin en
+ 	;push cx ;eindplaats op stack zetten
 	;mov bx, 23845 ;Beginplaats
 	xor dx, dx
 	xor ax, ax
+	xor ah, ah
+	xor al, al
 	START:
 	mov al, 44h
 	mov	di, bx
@@ -242,12 +260,11 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 10 ;hoogte van het vierkant
 	cmp dx, ax
 	JL START
-	pop cx
-	pop bx
-	inc bx
-	cmp bx, cx
-	JL MOVING
-
+	;pop cx
+	;pop bx
+	;inc bx
+	;cmp bx, cx
+	;JL MOVING
 	pop dx
 	pop ax
 	ret 0
