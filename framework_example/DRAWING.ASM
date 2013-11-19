@@ -115,7 +115,7 @@ clearScreenBuffer PROC NEAR
 	mov		di, offset screenBuffer
 	mov		cx, 64000 / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
 	xor		ax, ax ;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
-	rep		stosw ;herhaal stosw cx keer. Stosw zet ex:di op ax
+	rep		stosw ;herhaal stosw cx keer. Stosw zet es:di op ax
 	
 	;Haal de overschreven waarden terug
 	pop	es
@@ -208,7 +208,7 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push ax
 	push dx
 
-	mov ax, offset screenBuffer
+	mov ax, seg screenBuffer
 	mov es, ax
 	mov dx, offset palette
 	xor bx, bx
