@@ -217,25 +217,49 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	int 10h
 
 	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + ((rest(Bloknr/32) + 1) * 10) - 10
+	;xor dx, dx
+	;xor ax, ax
+	;xor cx, cx
+	;mov ax, 608 ;Bloknr
+	;mov bx, 32 ;bereidt deling voor
+	;div bx ;ax = bloknr/32, hier 19
+	;mov bx, 3200
+	;push dx ;houd rest na deling bij, hier 0
+	;xor dx, dx ;voorbereiding voor vermenigvuldiging
+	;mul bx ;ax = (Bloknr/32) * 3200, hier 60800
+	;pop dx ;gebruik rest na deling (rest(bloknr/32)), hier 0
+	;push ax ;(Bloknr/32) * 3200, hier 60800
+	;inc dx ;(rest(bloknr/32) + 1, hier 1
+	;mov ax, 10
+	;xor dx, dx ;voorbereiding deling
+	;mul dx ;((rest(bloknr/32) + 1) * 10, hier 10
+	;pop bx
+	;add bx, ax;  (Bloknr/32) * 3200) + (((rest(bloknr/32) + 1) * 10), dus 60800 + 10, 60810
+	;sub bx, 10 ;Bloknr/32) * 3200) + (((rest(bloknr/32) + 1) * 10) - 10, hier 60800
+
+
+	;Let's try this again!
 	xor dx, dx
 	xor ax, ax
 	xor cx, cx
-	mov ax, 639 ;Bloknr
-	mov bx, 32 ;bereidt deling voor
-	div bx ;ax = bloknr/32, hier 0
+	mov ax, 10 ;Bloknr
+	mov bx, 32
+	div bx ;ax = 10/32 = 3 (word da automatisch afgerond???)
 	mov bx, 3200
-	push dx ;houd rest na deling bij
-	xor dx, dx ;voorbereiding voor vermenigvuldiging
-	mul bx ;ax = (Bloknr/32) * 3200, hier 0
-	pop dx ;gebruik rest na deling (rest(bloknr/32))
-	push ax ;(Bloknr/32) * 3200
-	inc dx ;(rest(bloknr/32) + 1, hier 3
+	push dx ;rest is 2
+	xor dx, dx
+	mul bx ;3*3200 = 9600
+	pop dx
+	push ax
+	inc dx ;2+1 = 3
 	mov ax, 10
-	xor dx, dx ;voorbereiding deling
-	mul dx ;((rest(bloknr/32) + 1) * 10, hier 30
+	xor dx, dx
+	mul dx ;3*10 = 30
 	pop bx
-	add bx, ax;  (Bloknr/32) * 3200) + (((rest(bloknr/32) + 1) * 10)
-	sub bx, 10 ;Bloknr/32) * 3200) + (((rest(bloknr/32) + 1) * 10) - 10
+	add bx, ax ;9600 + 30 = 9630
+	sub bx, 10 ;9630 - 10 = 9620
+
+	;It works! Misschien gewoon een rekenfoutje ofso
 
 
  	;mov bx, 61110 ;beginplaats om blokjes te tekenen
