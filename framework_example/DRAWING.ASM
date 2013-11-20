@@ -216,11 +216,11 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 13h
 	int 10h
 
-	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + ((rest(Bloknr/32) + 1) * 10) - 10
+	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
 	xor dx, dx
 	xor ax, ax
 	xor cx, cx
-	mov ax, 608 ;Bloknr
+	mov ax, 639 ;Bloknr
 	mov bx, 32
 	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
 	cmp ax, bx
@@ -228,23 +228,21 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	sub ax, bx
 	inc cx
 	jmp @divloop
-	@done:
-	mov dx, ax ;zet rest na deling in dx
-	mov ax, cx ;zet ax op het resultaat van de divloop
-	xor cx, cx
+	@done: ;na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
+	xchg ax, cx ;ax krijgt uitkomt van deling en cx krijgt de rest
 	mov bx, 3200
-	push dx ;rest is 2
+	push cx ;rest is 31
 	xor dx, dx
-	mul bx ;3*3200 = 9600
-	pop dx
+	mul bx ;19*3200 = 60800
+	pop cx
 	push ax
-	inc dx ;2+1 = 3
 	mov ax, 10
 	xor dx, dx
-	mul dx ;3*10 = 30
+	mul cx ;31 * 10 = 310
 	pop bx
-	add bx, ax ;9600 + 30 = 9630
-	sub bx, 10 ;9630 - 10 = 9620
+	add bx, ax ;60800 + 310 = 61110
+	add bx, offset screenBuffer
+	
 
 	xor dx, dx
 	xor ax, ax
