@@ -230,10 +230,10 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	;push	ax
 	;call    drawRect
 
-	mov ax, 10
-	push ax
-	mov ax, 10
-	push ax
+	;mov ax, 10
+	;push ax
+	;mov ax, 10
+	;push ax
 	;call drawSnake
 
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
@@ -249,6 +249,7 @@ renderWorld ENDP
 drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push ax
 	push dx
+	push bx
 
 	mov ax, seg screenBuffer
 	mov es, ax
@@ -262,7 +263,7 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	xor dx, dx
 	xor ax, ax
 	xor cx, cx
-	mov di, 0
+	mov di, 1
 	add di, offset screenBuffer
 	mov al, 15
     mov	es:[di], al	; set pixel
@@ -271,6 +272,7 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	;inc bx
 	;cmp bx, cx
 	;JL MOVING
+	pop bx
 	pop dx
 	pop ax
 	ret 0
