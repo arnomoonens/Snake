@@ -24,9 +24,6 @@ SCREENH		equ 200
 
 oldVideoMode	db ?
 hardOffset	dw 0 ; test variable
-msg	db "THIS IS A SNAKE GAME$"
-HORIZ_MOV dw 0
-VERT_MOV dw 0
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -149,78 +146,9 @@ updateScreen PROC NEAR
 	rep		movsw	; blit to screen	
 	;Move word at address DS:(E)SI to address ES:(E)DI  
 	;(ESI or SI depending on the address-size attribute of the instruction, 32 or 16, respectively)
-	
-	pop		es
-	pop		ds
-	pop		di
-	pop		si
-	pop		dx
-	pop		cx
-	pop		ax
-	ret		0
-updateScreen ENDP
-
-renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
-	push	ax
-	
-	call	clearScreenBuffer
-
-
-	;mov ax, 310
-	;push ax
-	;mov ax, 170
-	;push ax
-	;push 2 waarden op de stack en roep drawRect
-	;deze 2 waarden zullen lengte en breedte zijn!
-	;call 	drawRect
-
-	;mov ax, 10
-	;push ax
-	;mov ax, 10
-	;push ax
-	;call drawCandy ;tekent vierkant op random positie
-
-	;call	rand ;laat een willekeurige waarde in AX achter
-	;and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
-	;push	ax
-	;call	rand ;laat een willekeurige waarde in AX achter
-	;and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
-	;push	ax
-	;call    drawRect
-
-	mov ax, 10
-	push ax
-	mov ax, 10
-	push ax
-	call drawSnake
-
-	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
-
-	; draw the screen buffer
-	call 	updateScreen
-	
-	pop	ax
-	ret	0
-renderWorld ENDP
-
-;Tekent een blokske van 10 bij 10
-drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
-	push ax
-	push dx
-
-	mov ax, seg screenBuffer
-	mov es, ax
-	mov dx, offset palette
-	xor bx, bx
-	mov cx, 2
-	mov ax, 13h
-	int 10h
-
-	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
-	xor dx, dx
-	xor ax, ax
-	xor cx, cx
-	mov ax, 639 ;Bloknr
+	mov si, 0
+	@drawloop:
+	mov ax, si ;Bloknr
 	mov bx, 32
 	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
 	cmp ax, bx
@@ -243,7 +171,6 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	add bx, ax ;60800 + 310 = 61110
 	add bx, offset screenBuffer
 	
-
 	xor dx, dx
 	xor ax, ax
 	xor ah, ah
@@ -256,7 +183,108 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	cld
 	rep	stosb	; draw 
 
-	ADD bx, 320 ;lijn opschuiven naar beneden
+	add bx, 320 ;lijn opschuiven naar beneden
+	inc dx ;counter optellen
+	mov ax, 10 ;hoogte van het vierkant
+	cmp dx, ax
+	JL START
+	mov ax, 64000
+	mov bx, offset screenBuffer
+	inc si
+	cmp ax, bx
+	JNE @drawloop
+
+	pop		es
+	pop		ds
+	pop		di
+	pop		si
+	pop		dx
+	pop		cx
+	pop		ax
+	ret		0
+updateScreen ENDP
+
+renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
+	push	ax
+	
+	call	clearScreenBuffer
+
+	mov ax, 10
+	push ax
+	mov ax, 10
+	push ax
+	call drawCandy
+
+	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
+
+	; draw the screen buffer
+	call 	updateScreen
+	
+	pop	ax
+	ret	0
+renderWorld ENDP
+
+Formula PROC NEAR ;krijgt bloknummer in AX, geeft px terug waarvan drawFilledRect moet beginnen tekeken (in AX/BX??)
+   
+	mov bx, 32
+	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
+	cmp ax, bx
+	JL @done
+	sub ax, bx
+	inc cx
+	jmp @divloop
+	@done: ;na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
+	xchg ax, cx ;ax krijgt uitkomt van deling en cx krijgt de rest
+	mov bx, 3200
+	push cx ;rest is 31
+	xor dx, dx
+	mul bx ;19*3200 = 60800
+	pop cx
+	push ax
+	mov ax, 10
+	xor dx, dx
+	mul cx ;31 * 10 = 310
+	pop bx
+	add bx, ax ;60800 + 310 = 61110
+	add bx, offset screenBuffer
+	ret 0
+
+Formula ENDP
+
+;Tekent een blokske van 10 bij 10
+drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
+	push ax
+	push dx
+
+	mov ax, seg screenBuffer
+	mov es, ax
+	mov dx, offset palette
+	xor bx, bx
+	mov cx, 2
+	mov ax, 13h
+	int 10h
+
+	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
+	xor dx, dx
+	xor ax, ax
+	xor cx, cx
+	mov ax, 0 ;Bloknr
+	call Formula
+	add bx, [hardOffset] ;Voor beweging
+	
+	xor dx, dx
+	xor ax, ax
+	xor ah, ah
+	xor al, al
+	START:
+	mov al, 44h
+	mov	di, bx
+	mov	cx, 10	; lengte van het vierkant
+	mov	al, 15	; color
+	cld
+	rep	stosb	; draw 
+
+	add bx, 320 ;lijn opschuiven naar beneden
 	inc dx ;counter optellen
 	mov ax, 10 ;hoogte van het vierkant
 	cmp dx, ax
@@ -411,7 +439,7 @@ drawRect PROC NEAR
 	ret	4
 drawRect ENDP
 
-drawCandy PROC NEAR
+drawCandy PROC NEAR ;Draws a square on a randomly generated positiion
 	push	bp
 	mov	bp, sp
 	
@@ -501,91 +529,6 @@ drawCandy PROC NEAR
 	pop	bp
 	ret	4
 drawCandy ENDP
-
-drawSnake PROC NEAR
-	push	bp
-	mov	bp, sp
-	
-	push	ax
-	push	bx
-	push	cx
-	push	dx
-	push	di
-	push	es
-	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	; Calculate posX
-	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
-	neg	ax
-	add	ax, SCREENW
-	shr	ax, 1  
-	;UNSIGNED bitwise shift right, dus delen door 2
-	;niet hetzelfde als sar, want sar is SIGNED
-	mov	bx, ax		; posX is in BX now
-	
-	; Calculate posY
-	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
-	neg	ax
-	add	ax, SCREENH
-	shr	ax, 1		; and posY is in AX
-	
-	; Calculate offset of top-left corner
-	mov	dx, SCREENW
-	mul	dx		; AX = posY (in AX) * SCREENW
-	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
-	add	ax, offset screenBuffer
-	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
-	
-	; Draw upper horizontal line
-	mov	di, ax
-	mov	cx, [bp + 4][2]	; rect W
-	mov	al, 15	; color
-	cld
-	rep	stosb	; draw	
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw right vertical line	
-	mov		cx, [bp + 4][0]	; rect H
-	dec	di
-	@@:
-	mov	es:[di], al	; set pixel
-	add	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-	
-	; Draw bottom horizontal line
-	mov	cx, [bp+4][2]	; rect W
-	std	; set direction flag to decrement di and si
-	rep	stosb	; draw
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw left vertical line
-	mov	cx, [bp + 4][0]	; rect H
-	inc di
-	@@:
-	mov	es:[di], al	; set pixel
-	sub	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-
-	; We are done
-	pop	es
-	pop	di
-	pop	dx
-	pop	cx
-	pop	bx
-	pop	ax
-	; return
-	pop	bp
-	ret	4
-drawSnake ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
