@@ -25,6 +25,9 @@ SCREENH		equ 200
 oldVideoMode	db ?
 hardOffset	dw 0 
 testCounter dw 1
+speed dw 0affh ;the higher the slower
+direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
+lastPlace dw 96 ;last known place of our block (should be a list later on?)
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -62,7 +65,12 @@ main PROC NEAR
 	;call	updateWorld	; this would contain the game code (like AI)
 
 	call	renderWorld	; draws the world
-	
+	mov cx, speed
+	delayloop:
+	dec cx
+	cmp cx, 0
+	jz delayloop
+
 	call	handleInput	; handle user input
 	cmp		al, 0
 	jz		@main_loop
@@ -236,8 +244,25 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 13h
 	int 10h
 
+	mov ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
+	cmp ax, 0
+	jnz @F
+	sub [lastPlace], 32
+	@@:
+	cmp ax, 1
+	jnz @F
+	inc [lastPlace]
+	@@:
+	cmp ax, 2
+	jnz @F
+	add [lastPlace], 32
+	@@:
+	cmp ax, 3
+	jnz @F
+	dec [lastPlace]
+	@@:
 
-	mov di, [hardOffset]
+	mov di, [lastPlace]
 	add di, offset screenBuffer
 	mov al, 15
     mov cx, [bp + 4][0]
@@ -276,31 +301,35 @@ handleInput PROC NEAR
 	cmp	al, 0
 	jz @F	; jump next
 
-	mov	ax, 32
-	sub [hardOffset], ax
-	sub [hardOffset], ax
+	;mov	ax, 32
+	;sub [hardOffset], ax
+	;sub [hardOffset], ax
+	mov [direction], 0
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
 	jz @F	; jump next
 
-	mov	ax, 32
-	add [hardOffset], ax
-	add [hardOffset], ax
+	;mov	ax, 32
+	;add [hardOffset], ax
+	;add [hardOffset], ax
+	mov [direction], 2
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
 	cmp	al, 0
 	jz @F	; jump next
 
-	dec [hardOffset]
-	dec [hardOffset]
+	;dec [hardOffset]
+	;dec [hardOffset]
+	mov [direction], 3
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp	al, 0
 	jz @F	; jump next
 
-	inc [hardOffset]
-	inc [hardOffset]
+	;inc [hardOffset]
+	;inc [hardOffset]
+	mov [direction], 1
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_TAB]	; test LEFT key
 	cmp	al, 0
@@ -545,7 +574,7 @@ drawSnake PROC NEAR
 	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
 	
 	; Draw right vertical line	
-	mov		cx, [bp + 4][0]	; rect H
+	mov	cx, [bp + 4][0]	; rect H
 	dec	di
 	@@:
 	mov	es:[di], al	; set pixel
