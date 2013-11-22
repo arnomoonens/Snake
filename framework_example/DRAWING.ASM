@@ -31,7 +31,7 @@ VERT_MOV dw 0
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
 palette			db 768 dup(0)
-screenBuffer	db 64000 dup(?)	; the 64000 bytes for the screen
+screenBuffer	db 640 dup(?)	; the 64000 bytes for the screen
 
 ; --- CODE SEGMENT -------------------------------------------------------------
 .CODE        ; code segment
@@ -113,7 +113,7 @@ clearScreenBuffer PROC NEAR
 	mov		ax, seg screenBuffer ; wijs met ax naar het segment van de screenBuffer
 	mov		es, ax ;zet es naar ax, dus de screenBuffer
 	mov		di, offset screenBuffer
-	mov		cx, 64000 / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
+	mov		cx, 640 / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
 	xor		ax, ax ;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
 	rep		stosw ;herhaal stosw cx keer. Stosw zet es:di op ax
 	
@@ -142,14 +142,59 @@ updateScreen PROC NEAR
 	mov		ax, 0a000h	; video memory
 	mov		es, ax
 	xor		di, di	; start at pixel 0
-	
+	waitVBlank
+	@displayloop: ;Bloknr
+	mov ax, si
+	sub ax, offset screenBuffer ;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
+	mov bx, 32
+	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
+	cmp ax, bx
+	JL @done
+	sub ax, bx
+	inc cx
+	jmp @divloop
+	@done: ;na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
+	xchg ax, cx ;ax krijgt uitkomt van deling en cx krijgt de rest
+	mov bx, 3200
+	push cx ;rest is 31
+	xor dx, dx
+	mul bx ;19*3200 = 60800
+	pop cx
+	push ax
+	mov ax, 10
+	xor dx, dx
+	mul cx ;31 * 10 = 310
+	pop bx
+	add bx, ax ;60800 + 310 = 61110
+	mov dx, ds:[si]
+	mov ax, es:[bx]
+	cmp dx, ax
+	JE AFTERSTART
+	xor dx, dx
+	xor ax, ax
+	xor ah, ah
+	xor al, al
+	START:
+	mov	di, bx
+	mov	cx, 10	; lengte van het vierkant
+	mov	al, ds:[si]	; color
 	cld
-	mov		cx, 64000 / 2
-	waitVBlank	; wait for a VB (modifies AX and DX)
-	rep		movsw	; blit to screen	
-	;Move word at address DS:(E)SI to address ES:(E)DI  
-	;(ESI or SI depending on the address-size attribute of the instruction, 32 or 16, respectively)
-	
+	rep	stosb	; draw 
+
+	ADD bx, 320 ;lijn opschuiven naar beneden
+	inc dx ;counter optellen
+	mov ax, 10 ;hoogte van het vierkant
+	cmp dx, ax
+	JL START
+	AFTERSTART:
+	mov ax, 640
+	inc si
+	mov bx, si
+	sub bx, offset screenBuffer
+	cmp bx, ax
+	JL @displayloop
+
+	xor al, al
 	pop		es
 	pop		ds
 	pop		di
@@ -188,11 +233,11 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	;push	ax
 	;call    drawRect
 
-	mov ax, 10
-	push ax
-	mov ax, 10
-	push ax
-	call drawSnake
+	;mov ax, 10
+	;push ax
+	;mov ax, 10
+	;push ax
+	;call drawSnake
 
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
@@ -207,6 +252,7 @@ renderWorld ENDP
 drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push ax
 	push dx
+	push bx
 
 	mov ax, seg screenBuffer
 	mov es, ax
@@ -216,56 +262,20 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 13h
 	int 10h
 
-	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
-	xor dx, dx
-	xor ax, ax
-	xor cx, cx
-	mov ax, 639 ;Bloknr
-	mov bx, 32
-	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
-	cmp ax, bx
-	JL @done
-	sub ax, bx
-	inc cx
-	jmp @divloop
-	@done: ;na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
-	xchg ax, cx ;ax krijgt uitkomt van deling en cx krijgt de rest
-	mov bx, 3200
-	push cx ;rest is 31
-	xor dx, dx
-	mul bx ;19*3200 = 60800
-	pop cx
-	push ax
-	mov ax, 10
-	xor dx, dx
-	mul cx ;31 * 10 = 310
-	pop bx
-	add bx, ax ;60800 + 310 = 61110
-	add bx, offset screenBuffer
-	
 
-	xor dx, dx
-	xor ax, ax
-	xor ah, ah
-	xor al, al
-	START:
-	mov al, 44h
-	mov	di, bx
-	mov	cx, 10	; lengte van het vierkant
-	mov	al, 15	; color
+	mov di, [hardOffset]
+	add di, offset screenBuffer
+	mov al, 15
+    mov cx, 4
 	cld
 	rep	stosb	; draw 
 
-	ADD bx, 320 ;lijn opschuiven naar beneden
-	inc dx ;counter optellen
-	mov ax, 10 ;hoogte van het vierkant
-	cmp dx, ax
-	JL START
 	;pop cx
 	;pop bx
 	;inc bx
 	;cmp bx, cx
 	;JL MOVING
+	pop bx
 	pop dx
 	pop ax
 	ret 0
