@@ -145,7 +145,7 @@ updateScreen PROC NEAR
 	waitVBlank
 	@displayloop: ;Bloknr
 	mov ax, si
-	sub ax, offset screenBuffer
+	sub ax, offset screenBuffer ;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
 	mov bx, 32
 	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
 	cmp ax, bx
@@ -166,8 +166,10 @@ updateScreen PROC NEAR
 	mul cx ;31 * 10 = 310
 	pop bx
 	add bx, ax ;60800 + 310 = 61110
-	
-
+	mov dx, ds:[si]
+	mov ax, es:[bx]
+	cmp dx, ax
+	JE AFTERSTART
 	xor dx, dx
 	xor ax, ax
 	xor ah, ah
@@ -184,6 +186,7 @@ updateScreen PROC NEAR
 	mov ax, 10 ;hoogte van het vierkant
 	cmp dx, ax
 	JL START
+	AFTERSTART:
 	mov ax, 640
 	inc si
 	mov bx, si
@@ -259,14 +262,14 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov ax, 13h
 	int 10h
 
-	;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
-	xor dx, dx
-	xor ax, ax
-	xor cx, cx
-	mov di, 1
+
+	mov di, [hardOffset]
 	add di, offset screenBuffer
 	mov al, 15
-    mov	es:[di], al	; set pixel
+    mov cx, 4
+	cld
+	rep	stosb	; draw 
+
 	;pop cx
 	;pop bx
 	;inc bx
