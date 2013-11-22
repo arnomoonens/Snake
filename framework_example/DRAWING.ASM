@@ -23,10 +23,8 @@ SCREENH		equ 200
 .DATA        ; data segment, variables
 
 oldVideoMode	db ?
-hardOffset	dw 0 ; test variable
-msg	db "THIS IS A SNAKE GAME$"
-HORIZ_MOV dw 0
-VERT_MOV dw 0
+hardOffset	dw 0 
+testCounter dw 1
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -210,35 +208,8 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	
 	call	clearScreenBuffer
 
-
-	;mov ax, 310
-	;push ax
-	;mov ax, 170
-	;push ax
-	;push 2 waarden op de stack en roep drawRect
-	;deze 2 waarden zullen lengte en breedte zijn!
-	;call 	drawRect
-
-	;mov ax, 10
-	;push ax
-	;mov ax, 10
-	;push ax
-	;call drawCandy ;tekent vierkant op random positie
-
-	;call	rand ;laat een willekeurige waarde in AX achter
-	;and		ax, 0ffh ;0FFh = grootste nummer in HEX, nl 255
-	;push	ax
-	;call	rand ;laat een willekeurige waarde in AX achter
-	;and		ax, 07fh ;O7Fh = 127 in HEX, de helft van 0FFh
-	;push	ax
-	;call    drawRect
-
-	;mov ax, 10
-	;push ax
-	;mov ax, 10
-	;push ax
-	;call drawSnake
-
+	mov ax, [testCounter]
+	push ax
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	; draw the screen buffer
@@ -250,6 +221,9 @@ renderWorld ENDP
 
 ;Tekent een blokske van 10 bij 10
 drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
+	push	bp
+	mov	bp, sp
+
 	push ax
 	push dx
 	push bx
@@ -266,7 +240,7 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov di, [hardOffset]
 	add di, offset screenBuffer
 	mov al, 15
-    mov cx, 4
+    mov cx, [bp + 4][0]
 	cld
 	rep	stosb	; draw 
 
@@ -278,7 +252,9 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	pop bx
 	pop dx
 	pop ax
-	ret 0
+
+	pop	bp
+	ret 2 
 drawFilledRect ENDP
 
 
@@ -299,15 +275,16 @@ handleInput PROC NEAR
 	mov	al, es:[__keyboardState][SCANCODE_UP]	; test UP key
 	cmp	al, 0
 	jz @F	; jump next
-	mov	ax, SCREENW
+
+	mov	ax, 32
 	sub [hardOffset], ax
 	sub [hardOffset], ax
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
 	jz @F	; jump next
-	mov	ax, SCREENW
 
+	mov	ax, 32
 	add [hardOffset], ax
 	add [hardOffset], ax
 @@:
@@ -324,6 +301,13 @@ handleInput PROC NEAR
 
 	inc [hardOffset]
 	inc [hardOffset]
+@@:
+	mov	al, es:[__keyboardState][SCANCODE_TAB]	; test LEFT key
+	cmp	al, 0
+	jz @F	; jump next
+
+	inc [testCounter]
+	inc [testCounter]
 @@:
 	
 	; finally, let's put the ESC key status as return value in AX
