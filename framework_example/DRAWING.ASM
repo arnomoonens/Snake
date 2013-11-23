@@ -240,8 +240,6 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	
 	call	clearScreenBuffer
 
-	mov ax, [testCounter]
-	push ax
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	; draw the screen buffer
