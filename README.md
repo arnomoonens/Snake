@@ -23,6 +23,8 @@ Project voor Computersystemen: Snake maken met Assembly 8086
 
 ##Assembly Projecten van anderen
 - [Snake](http://he.scribd.com/doc/114620920/Snake-Code-for-EMU8086?secret_password=10ila7iztx3wd3h77q1v)
+- [Ander snake project](https://github.com/AhmadAbdelNaser/emu8086/blob/master/examples/snake.asm)
+- [Nog ander snake project](http://snipt.org/vxfd8)
 - [Space Invaders](https://github.com/angryzor/space_invaders_8086)
 - [Connect 4](https://github.com/mazenwagdy/connect-4/blob/master/code.asm)
 
