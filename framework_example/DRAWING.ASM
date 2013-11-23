@@ -25,9 +25,11 @@ SCREENH		equ 200
 oldVideoMode	db ?
 hardOffset	dw 0 
 testCounter dw 1
-speed dw 0affh ;the higher the slower
+;speed dw 0affh ;the higher the slower
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace dw 96 ;last known place of our block (should be a list later on?)
+lastTime dw 0 ;last remembered time
+delayTime dw 5
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -64,17 +66,29 @@ main PROC NEAR
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
+	mov ah, 00h
+    int 1Ah ;get time since startup
+
+	push dx
+	sub dx, [lastTime]
+	cmp dx, delayTime ;if the difference between the last recorded time and the current time...
+	pop dx
+	JL @nextloop ;.. is less than delayTime, then only look for input
+	mov [lastTime], dx ;otherwise, change the lastTime and do your thing
+
 	call	renderWorld	; draws the world
-	mov cx, speed
-	delayloop:
-	dec cx
-	cmp cx, 0
-	jz delayloop
 
 	call	handleInput	; handle user input
 	cmp		al, 0
-	jz		@main_loop
+	jz		@main_loop ;no signal to end the game, do another loop
+	jmp 	@game_end  ;otherwise: end of the game
 	
+	@nextloop: ;Not enough time has passed to move the blocks, but look for input to react to in the next 'useful' loop
+	call handleInput
+	cmp al, 0
+	jz @main_loop ;no signal to end the game, do another loop
+
+	@game_end:
 	; Restore original keyboard handler
 	call	uninstallKeyboardHandler
 
@@ -87,6 +101,9 @@ main PROC NEAR
 	; Exit to DOS
 	mov		ax, 4c00h	; exit to DOS function, return code 00h
 	int		21h			; call DOS
+
+	
+
 main ENDP
 
 ; Fades the active colors to black
@@ -149,6 +166,13 @@ updateScreen PROC NEAR
 	mov		es, ax
 	xor		di, di	; start at pixel 0
 	waitVBlank
+	mov ax, 0b800h
+	mov es, ax
+	xor bx, bx
+	mov ax, "A"
+	mov es:[bx], ax
+	mov ax, 0a000h
+	mov es, ax
 	@displayloop: ;Bloknr
 	mov ax, si
 	sub ax, offset screenBuffer ;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
