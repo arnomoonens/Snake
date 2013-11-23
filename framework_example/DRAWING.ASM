@@ -62,7 +62,11 @@ main PROC NEAR
 	push	ax
 	call	setVideoMode
 	mov		[oldVideoMode], al
-	
+
+	;Voor het programma start, stel lastTime in
+	mov ah, 00h
+	int 1Ah
+	mov [lastTime], dx
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
