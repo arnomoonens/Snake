@@ -240,6 +240,8 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	
 	call	clearScreenBuffer
 
+	mov ax, [testCounter]
+	push ax
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	; draw the screen buffer
@@ -353,7 +355,7 @@ handleInput PROC NEAR
 	;inc [hardOffset]
 	mov [direction], 1
 @@:
-	mov	al, es:[__keyboardState][SCANCODE_TAB]	; test LEFT key
+	mov	al, es:[__keyboardState][SCANCODE_TAB]	; test TAB key
 	cmp	al, 0
 	jz @F	; jump next
 
