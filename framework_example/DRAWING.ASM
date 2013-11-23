@@ -24,10 +24,15 @@ SCREENH		equ 200
 
 oldVideoMode	db ?
 hardOffset	dw 0 
-testCounter dw 1
-;speed dw 0affh ;the higher the slower
+blocCounter dw 1
+candyPos dw 305
+movCandy dw 0 
+;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
+
+
+
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
-lastPlace dw 96 ;last known place of our block (should be a list later on?)
+lastPlace dw 0 ;last known place of our block (should be a list later on?)
 lastTime dw 0 ;last remembered time
 delayTime dw 5
 
@@ -244,9 +249,11 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	
 	call	clearScreenBuffer
 
-	mov ax, [testCounter]
+	mov ax, [blocCounter]
 	push ax
 	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
+
+	call drawRandomRect
 
 	; draw the screen buffer
 	call 	updateScreen
@@ -307,9 +314,54 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	pop ax
 
 	pop	bp
-	ret 2 
+	ret 2 ;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
 drawFilledRect ENDP
 
+drawRandomRect PROC NEAR
+
+	push ax
+	push dx
+	push bx
+
+	mov ax, seg screenBuffer
+	mov es, ax
+	mov dx, offset palette
+	xor bx, bx
+	mov cx, 2
+	mov ax, 13h
+	int 10h
+
+	mov ax, [movCandy]
+	cmp ax, 0
+	JE @oldRand
+
+	@newRand:
+	call rand
+	mov bx, 640
+	div bx
+	mov ax, dx
+	mov [candyPos], ax
+	mov bx, 0
+	mov [movCandy], bx ;it's a new position now, reset to 0, so it doesn't change again
+	mov di, ax
+	JMP @draw
+
+	@oldRand:
+	mov di, [candyPos]
+
+	@draw:
+	add di, offset screenBuffer
+	mov al, 15
+    mov cx, 1
+	cld
+	rep	stosb	; draw 
+
+	pop bx
+	pop dx
+	pop ax
+
+	ret 0
+drawRandomRect ENDP
 
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
@@ -363,8 +415,7 @@ handleInput PROC NEAR
 	cmp	al, 0
 	jz @F	; jump next
 
-	inc [testCounter]
-	inc [testCounter]
+	inc [movCandy]
 @@:
 	
 	; finally, let's put the ESC key status as return value in AX
@@ -462,181 +513,6 @@ drawRect PROC NEAR
 	ret	4
 drawRect ENDP
 
-drawCandy PROC NEAR
-	push	bp
-	mov	bp, sp
-	
-	push	ax
-	push	bx
-	push	cx
-	push	dx
-	push	di
-	push	es
-	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	; Calculate posX
-	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
-	mov bx, ax
-	call rand
-	and ax, 64000
-	neg	ax
-	add	ax, SCREENW
-	shr	ax, 1  
-	;UNSIGNED bitwise shift right, dus delen door 2
-	;niet hetzelfde als sar, want sar is SIGNED
-	mov	bx, ax		; posX is in BX now
-	
-	; Calculate posY
-	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
-	mov cx, ax
-	call rand
-	and ax, 64000
-	neg	ax
-	add	ax, SCREENH
-	shr	ax, 1		; and posY is in AX
-	
-	; Calculate offset of top-left corner
-	mov	dx, SCREENW
-	mul	dx		; AX = posY (in AX) * SCREENW
-	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
-	add	ax, offset screenBuffer
-	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
-	
-	; Draw upper horizontal line
-	mov	di, ax
-	mov	cx, [bp + 4][2]	; rect W
-	mov	al, 15	; color
-	cld
-	rep	stosb	; draw	
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw right vertical line	
-	mov		cx, [bp + 4][0]	; rect H
-	dec	di
-	@@:
-	mov	es:[di], al	; set pixel
-	add	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-	
-	; Draw bottom horizontal line
-	mov	cx, [bp+4][2]	; rect W
-	std	; set direction flag to decrement di and si
-	rep	stosb	; draw
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw left vertical line
-	mov	cx, [bp + 4][0]	; rect H
-	inc di
-	@@:
-	mov	es:[di], al	; set pixel
-	sub	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-
-	; We are done
-	pop	es
-	pop	di
-	pop	dx
-	pop	cx
-	pop	bx
-	pop	ax
-	; return
-	pop	bp
-	ret	4
-drawCandy ENDP
-
-drawSnake PROC NEAR
-	push	bp
-	mov	bp, sp
-	
-	push	ax
-	push	bx
-	push	cx
-	push	dx
-	push	di
-	push	es
-	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	; Calculate posX
-	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
-	neg	ax
-	add	ax, SCREENW
-	shr	ax, 1  
-	;UNSIGNED bitwise shift right, dus delen door 2
-	;niet hetzelfde als sar, want sar is SIGNED
-	mov	bx, ax		; posX is in BX now
-	
-	; Calculate posY
-	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
-	neg	ax
-	add	ax, SCREENH
-	shr	ax, 1		; and posY is in AX
-	
-	; Calculate offset of top-left corner
-	mov	dx, SCREENW
-	mul	dx		; AX = posY (in AX) * SCREENW
-	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
-	add	ax, offset screenBuffer
-	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
-	
-	; Draw upper horizontal line
-	mov	di, ax
-	mov	cx, [bp + 4][2]	; rect W
-	mov	al, 15	; color
-	cld
-	rep	stosb	; draw	
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw right vertical line	
-	mov	cx, [bp + 4][0]	; rect H
-	dec	di
-	@@:
-	mov	es:[di], al	; set pixel
-	add	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-	
-	; Draw bottom horizontal line
-	mov	cx, [bp+4][2]	; rect W
-	std	; set direction flag to decrement di and si
-	rep	stosb	; draw
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw left vertical line
-	mov	cx, [bp + 4][0]	; rect H
-	inc di
-	@@:
-	mov	es:[di], al	; set pixel
-	sub	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-
-	; We are done
-	pop	es
-	pop	di
-	pop	dx
-	pop	cx
-	pop	bx
-	pop	ax
-	; return
-	pop	bp
-	ret	4
-drawSnake ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
