@@ -26,8 +26,10 @@ oldVideoMode	db ?
 hardOffset	dw 0 
 blocCounter dw 1
 candyPos dw 305
-movCandy dw 0 
+movCandy dw 0
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
+snake_size dw 5
+snake dw 5 dup(0)
 
 
 
@@ -72,6 +74,10 @@ main PROC NEAR
 	mov ah, 00h
 	int 1Ah
 	mov [lastTime], dx
+	mov snake[0], 200
+	mov snake[2], 201
+	mov snake[4], 639
+	mov snake[200], 32
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
@@ -246,7 +252,7 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 
 	mov ax, [blocCounter]
 	push ax
-	call drawFilledRect ;Tekent vierkant van 10 bij 10 erges vast op het scherm
+	call DrawSnake ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	call drawRandomRect
 
@@ -258,7 +264,7 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 renderWorld ENDP
 
 ;Tekent een blokske van 10 bij 10
-drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
+DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push	bp
 	mov	bp, sp
 
@@ -273,31 +279,42 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov cx, 2
 	mov ax, 13h
 	int 10h
-
-	mov ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
-	cmp ax, 0
-	jnz @F
-	sub [lastPlace], 32
-	@@:
-	cmp ax, 1
-	jnz @F
-	inc [lastPlace]
-	@@:
-	cmp ax, 2
-	jnz @F
-	add [lastPlace], 32
-	@@:
-	cmp ax, 3
-	jnz @F
-	dec [lastPlace]
-	@@:
-
-	mov di, [lastPlace]
+;
+;	mov ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
+;	cmp ax, 0
+;	jnz @F
+;	sub [lastPlace], 32
+;	@@:
+;	cmp ax, 1
+;	jnz @F
+;	inc [lastPlace]
+;	@@:
+;	cmp ax, 2
+;	jnz @F
+;	add [lastPlace], 32
+;	@@:
+;	cmp ax, 3
+;	jnz @F
+;	dec [lastPlace]
+;	@@:
+;
+;	mov di, [lastPlace]
+;	add di, offset screenBuffer
+;	mov al, 15
+;    mov cx, [bp + 4][0]
+;	cld
+;	rep	stosb	; draw 
+	mov bx, 0
+	mov cx, snake_size
+	@loop:
+	mov di, snake[bx]
 	add di, offset screenBuffer
 	mov al, 15
-    mov cx, [bp + 4][0]
-	cld
-	rep	stosb	; draw 
+	mov es:[di], al
+	dec cx
+	add bx, 2
+	cmp cx, 0
+	jnz @loop
 
 	;pop cx
 	;pop bx
@@ -310,7 +327,7 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 
 	pop	bp
 	ret 2 ;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
-drawFilledRect ENDP
+DrawSnake ENDP
 
 drawRandomRect PROC NEAR
 
