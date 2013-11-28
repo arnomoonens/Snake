@@ -175,11 +175,6 @@ updateScreen PROC NEAR
 	mov		es, ax
 	xor		di, di	; start at pixel 0
 	waitVBlank
-	mov ax, 0b800h
-	mov es, ax
-	xor bx, bx
-	mov ax, "A"
-	mov es:[bx], ax
 	mov ax, 0a000h
 	mov es, ax
 	@displayloop: ;Bloknr
