@@ -23,13 +23,11 @@ SCREENH		equ 200
 .DATA        ; data segment, variables
 
 oldVideoMode	db ?
-hardOffset	dw 0 
+hardOffset	dw 0
 blocCounter dw 1
 candyPos dw 305
 movCandy dw 0 
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
-
-
 
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace dw 0 ;last known place of our block (should be a list later on?)
@@ -210,12 +208,12 @@ updateScreen PROC NEAR
 	xor al, al
 	START:
 	mov	di, bx
-	mov	cx, 10	; lengte van het vierkant
+	mov cx, 10
 	mov	al, ds:[si]	; color
 	cld
 	rep	stosb	; draw 
 
-	ADD bx, 320 ;lijn opschuiven naar beneden
+	add bx, 320 ;lijn opschuiven naar beneden
 	inc dx ;counter optellen
 	mov ax, 10 ;hoogte van het vierkant
 	cmp dx, ax
@@ -242,7 +240,7 @@ updateScreen ENDP
 renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
 	push	ax
 	
-	call	clearScreenBuffer
+	call clearScreenBuffer
 
 	mov ax, [blocCounter]
 	push ax
@@ -292,28 +290,22 @@ drawFilledRect PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	dec [lastPlace]
 	@@:
 
+	cld
 	mov di, [lastPlace]
 	add di, offset screenBuffer
 	mov al, 15
     mov cx, [bp + 4][0]
-	cld
 	rep	stosb	; draw 
 
-	;pop cx
-	;pop bx
-	;inc bx
-	;cmp bx, cx
-	;JL MOVING
 	pop bx
 	pop dx
 	pop ax
 
-	pop	bp
-	ret 2 ;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
+	pop bp
+	ret 2
 drawFilledRect ENDP
 
 drawRandomRect PROC NEAR
-
 	push ax
 	push dx
 	push bx
@@ -412,7 +404,12 @@ handleInput PROC NEAR
 
 	inc [movCandy]
 @@:
-	
+	mov	al, es:[__keyboardState][SCANCODE_BACKSPACE]	; test BACKSPACE key
+	cmp	al, 0
+	jz @F	; jump next
+
+	inc [blocCounter]
+@@:
 	; finally, let's put the ESC key status as return value in AX
 	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
 
