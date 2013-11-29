@@ -28,8 +28,8 @@ blocCounter dw 1
 candyPos dw 305
 movCandy dw 0
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
-snake_size dw 5
-snake dw 5 dup(0)
+snake_size dw 4
+snake dw 4 dup(0)
 
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace dw 0 ;last known place of our block (should be a list later on?)
@@ -73,9 +73,9 @@ main PROC NEAR
 	int 1Ah
 	mov [lastTime], dx
 	mov snake[0], 200
-	mov snake[2], 201
-	mov snake[4], 639
-	mov snake[200], 32
+	mov snake[2], 199
+	mov snake[4], 198
+	mov snake[6], 197
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
@@ -250,7 +250,10 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 
 	mov ax, [blocCounter]
 	push ax
+	call updateSnake
 	call DrawSnake ;Tekent vierkant van 10 bij 10 erges vast op het scherm
+
+	;call CheckCollision
 
 	call drawRandomRect
 
@@ -269,6 +272,9 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push ax
 	push dx
 	push bx
+	push es
+	push cx
+	push di
 
 	mov ax, seg screenBuffer
 	mov es, ax
@@ -314,6 +320,9 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	cmp cx, 0
 	jnz @loop
 
+	pop di
+	pop cx
+	pop es
 	pop bx
 	pop dx
 	pop ax
@@ -321,6 +330,63 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	pop	bp
 	ret 2 ;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
 DrawSnake ENDP
+
+updateSnake PROC NEAR
+	push 	bp
+	mov bp, sp
+	push ax
+	push cx
+	push dx
+
+	mov cx, [snake_size]
+	xor dx, dx
+	;Begin bij het laatste element = snake_size * 2 - 2
+	mov ax, 2
+	MUL cx
+	mov cx, ax
+	sub cx, 2
+	@changeloop:
+	cmp cx, 0
+	jz @endloop
+	mov bx, cx
+	push bx
+	sub bx, 2
+	mov ax, snake[bx]
+	pop bx
+	mov snake[bx], ax ;zet het coordinaat van het huidg element op dat van het vorig element
+	sub cx, 2
+	jmp @changeloop
+	@endloop:
+	;Het eerste element bewegen wwe naargelang de [direction]
+	mov ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
+	cmp ax, 0
+	jnz @F
+	mov bx, cx
+	sub snake[bx], 32
+	@@:
+	cmp ax, 1
+	jnz @F
+	mov bx, cx
+	inc snake[bx]
+	@@:
+	cmp ax, 2
+	jnz @F
+	mov bx, cx
+	add snake[bx], 32
+	@@:
+	cmp ax, 3
+	jnz @F
+	mov bx, cx
+	dec snake[bx]
+	@@:
+
+	pop dx
+	pop cx
+	pop ax
+	pop bp
+
+	ret 0
+updateSnake ENDP
 
 drawRandomRect PROC NEAR
 	push ax
@@ -426,6 +492,7 @@ handleInput PROC NEAR
 	jz @F	; jump next
 
 	inc [blocCounter]
+
 @@:
 	; finally, let's put the ESC key status as return value in AX
 	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
