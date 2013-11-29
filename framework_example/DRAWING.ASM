@@ -28,8 +28,8 @@ blocCounter dw 1
 candyPos dw 305
 movCandy dw 0
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
-snake_size dw 4
-snake dw 4 dup(0)
+snake_size dw 5
+snake dw 5 dup(0)
 
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace dw 0 ;last known place of our block (should be a list later on?)
@@ -388,6 +388,39 @@ updateSnake PROC NEAR
 	ret 0
 updateSnake ENDP
 
+addToSnake PROC NEAR
+
+	push ax
+	push bx
+	push dx
+
+	;Verhoog de snake_size
+	;Vul de snake aan op positie snake_size * 2 - 2
+	;Aanvullen met dat dat op de vorige laatste positie stond - 1
+	mov bx, [snake_size] ;zet snake_size in bx
+	push bx ;push snake_size op stack
+	inc bx ;verhoog snake_size
+	inc [snake_size]
+	mov ax, 2
+	mul bx
+	sub ax, 2 ;snake_size * 2 - 2 = nieuwe index in array
+	pop bx ;vraag oude snake_size
+	push ax ;push nieuwe index
+	mov ax, 2 
+	mul bx
+	sub ax, 2 ;oude snake_size * 2 - 2 = oude index in array
+	mov bx, ax ;zet die in bx
+	mov ax, snake[bx] ;lees wat er op oude index stond (positie)
+	dec ax ;trek er eentje van af (nieuwe positie)
+	pop bx ;vraag nieuwe index terug
+	mov snake[bx], ax ;zet nieuwe positie op nieuwe index
+
+	pop dx
+	pop bx
+	pop ax
+	ret 0
+addToSnake ENDP
+
 drawRandomRect PROC NEAR
 	push ax
 	push dx
@@ -491,7 +524,7 @@ handleInput PROC NEAR
 	cmp	al, 0
 	jz @F	; jump next
 
-	inc [blocCounter]
+	call addToSnake
 
 @@:
 	; finally, let's put the ESC key status as return value in AX
