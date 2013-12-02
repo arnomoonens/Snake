@@ -489,6 +489,12 @@ handleInput PROC NEAR
 	;sub [hardOffset], ax
 	mov [direction], 0
 @@:
+	mov	al, es:[__keyboardState][SCANCODE_BACKSPACE]	; test BACKSPACE key
+	cmp	al, 0
+	jz @F	; jump next
+
+	call addToSnake
+@@:
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
 	jz @F	; jump next
@@ -519,13 +525,6 @@ handleInput PROC NEAR
 	jz @F	; jump next
 
 	inc [movCandy]
-@@:
-	mov	al, es:[__keyboardState][SCANCODE_BACKSPACE]	; test BACKSPACE key
-	cmp	al, 0
-	jz @F	; jump next
-
-	call addToSnake
-
 @@:
 	; finally, let's put the ESC key status as return value in AX
 	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
