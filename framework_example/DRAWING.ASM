@@ -17,6 +17,10 @@ include KEYB.INC
 ; Other constants	
 SCREENW		equ 320
 SCREENH		equ 200
+BLOCKSINROW equ 32
+ROWS		equ 18
+SIZEOFBLOCK	equ 10
+BLOCKS equ BLOCKSINROW * ROWS
 
 
 ; --- DATA SEGMENT -------------------------------------------------------------
@@ -29,7 +33,7 @@ candyPos dw 305
 movCandy dw 0
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
 snake_size dw 5
-snake dw 5 dup(0)
+snake dw BLOCKS dup(0)
 
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace dw 0 ;last known place of our block (should be a list later on?)
@@ -39,7 +43,7 @@ delayTime dw 5
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
 palette			db 768 dup(0)
-screenBuffer	db 640 dup(?)	; the 64000 bytes for the screen
+screenBuffer	db BLOCKS dup(?)	; the 64000 bytes for the screen
 
 ; --- CODE SEGMENT -------------------------------------------------------------
 .CODE        ; code segment
@@ -149,7 +153,7 @@ clearScreenBuffer PROC NEAR
 	mov		ax, seg screenBuffer ; wijs met ax naar het segment van de screenBuffer
 	mov		es, ax ;zet es naar ax, dus de screenBuffer
 	mov		di, offset screenBuffer
-	mov		cx, 640 / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
+	mov		cx, BLOCKS / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
 	xor		ax, ax ;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
 	rep		stosw ;herhaal stosw cx keer. Stosw zet es:di op ax
 	
@@ -184,7 +188,7 @@ updateScreen PROC NEAR
 	@displayloop: ;Bloknr
 	mov ax, si
 	sub ax, offset screenBuffer ;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
-	mov bx, 32
+	mov bx, BLOCKSINROW
 	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
 	cmp ax, bx
 	JL @done
@@ -193,39 +197,39 @@ updateScreen PROC NEAR
 	jmp @divloop
 	@done: ;na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
 	xchg ax, cx ;ax krijgt uitkomt van deling en cx krijgt de rest
-	mov bx, 3200
+	mov bx, BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
 	push cx ;rest is 31
 	xor dx, dx
 	mul bx ;19*3200 = 60800
 	pop cx
 	push ax
-	mov ax, 10
+	mov ax, SIZEOFBLOCK
 	xor dx, dx
 	mul cx ;31 * 10 = 310
 	pop bx
 	add bx, ax ;60800 + 310 = 61110
-	mov dx, ds:[si]
-	mov ax, es:[bx]
-	cmp dx, ax
-	JE AFTERSTART
+	;mov dx, ds:[si]
+	;mov ax, es:[bx]
+	;cmp dx, ax
+	;JE AFTERSTART
 	xor dx, dx
 	xor ax, ax
 	xor ah, ah
 	xor al, al
 	START:
 	mov	di, bx
-	mov cx, 10
+	mov cx, SIZEOFBLOCK
 	mov	al, ds:[si]	; color
 	cld
 	rep	stosb	; draw 
 
-	add bx, 320 ;lijn opschuiven naar beneden
+	add bx, SCREENW ;lijn opschuiven naar beneden
 	inc dx ;counter optellen
-	mov ax, 10 ;hoogte van het vierkant
+	mov ax, SIZEOFBLOCK ;hoogte van het vierkant
 	cmp dx, ax
 	JL START
 	AFTERSTART:
-	mov ax, 640
+	mov ax, BLOCKS
 	inc si
 	mov bx, si
 	sub bx, offset screenBuffer
@@ -283,31 +287,7 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov cx, 2
 	mov ax, 13h
 	int 10h
-;
-;	mov ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
-;	cmp ax, 0
-;	jnz @F
-;	sub [lastPlace], 32
-;	@@:
-;	cmp ax, 1
-;	jnz @F
-;	inc [lastPlace]
-;	@@:
-;	cmp ax, 2
-;	jnz @F
-;	add [lastPlace], 32
-;	@@:
-;	cmp ax, 3
-;	jnz @F
-;	dec [lastPlace]
-;	@@:
-;
-;	mov di, [lastPlace]
-;	add di, offset screenBuffer
-;	mov al, 15
-;    mov cx, [bp + 4][0]
-;	cld
-;	rep	stosb	; draw 
+
 	mov bx, 0
 	mov cx, snake_size
 	@loop:
@@ -394,26 +374,27 @@ addToSnake PROC NEAR
 	push bx
 	push dx
 
-	;Verhoog de snake_size
-	;Vul de snake aan op positie snake_size * 2 - 2
-	;Aanvullen met dat dat op de vorige laatste positie stond - 1
-	mov bx, [snake_size] ;zet snake_size in bx
-	push bx ;push snake_size op stack
-	inc bx ;verhoog snake_size
-	inc [snake_size]
+
+
+	mov bx, [snake_size]
+	mov ax, 2
+	MUL bx
+	push ax ;index van nieuw blokske
+
+	mov bx, [snake_size]
+	dec bx
 	mov ax, 2
 	mul bx
-	sub ax, 2 ;snake_size * 2 - 2 = nieuwe index in array
-	pop bx ;vraag oude snake_size
-	push ax ;push nieuwe index
-	mov ax, 2 
-	mul bx
-	sub ax, 2 ;oude snake_size * 2 - 2 = oude index in array
-	mov bx, ax ;zet die in bx
-	mov ax, snake[bx] ;lees wat er op oude index stond (positie)
-	dec ax ;trek er eentje van af (nieuwe positie)
-	pop bx ;vraag nieuwe index terug
-	mov snake[bx], ax ;zet nieuwe positie op nieuwe index
+	sub ax, 2
+	mov bx, ax
+	mov ax, snake[bx]
+
+	pop bx
+	mov snake[bx], ax
+
+	mov bx, [snake_size]
+	inc bx
+	mov snake_size, bx
 
 	pop dx
 	pop bx
@@ -489,12 +470,6 @@ handleInput PROC NEAR
 	;sub [hardOffset], ax
 	mov [direction], 0
 @@:
-	mov	al, es:[__keyboardState][SCANCODE_BACKSPACE]	; test BACKSPACE key
-	cmp	al, 0
-	jz @F	; jump next
-
-	call addToSnake
-@@:
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
 	jz @F	; jump next
@@ -526,6 +501,12 @@ handleInput PROC NEAR
 
 	inc [movCandy]
 @@:
+	mov	al, es:[__keyboardState][SCANCODE_BACKSPACE]	; test BACKSPACE key
+	cmp	al, 0
+	jz @F	; jump next
+
+	;call addToSnake
+@@:
 	; finally, let's put the ESC key status as return value in AX
 	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
 
@@ -533,93 +514,6 @@ handleInput PROC NEAR
 	pop	es
 	ret 0
 handleInput ENDP	
-
-; Draw a rectangle at the center of the screen buffer.
-; W, H passed on stack.
-drawRect PROC NEAR
-	push	bp
-	mov	bp, sp
-	
-	push	ax
-	push	bx
-	push	cx
-	push	dx
-	push	di
-	push	es
-	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	; Calculate posX
-	mov	ax, [bp + 4][2] ;bp + 4 vanwege static en dynamic link, maar [2]? volgens mij om gewoon 2 bytes verder te gaan, waar de breedte is gezet bij renderWorld
-	neg	ax
-	add	ax, SCREENW
-	shr	ax, 1  
-	;UNSIGNED bitwise shift right, dus delen door 2
-	;niet hetzelfde als sar, want sar is SIGNED
-	mov	bx, ax		; posX is in BX now
-	
-	; Calculate posY
-	mov	ax, [bp + 4][0]  ;bp + 4 vanwege static en dynamic link, maar [0]? volgens mij om gewoon 0 byes verder gegaan, waar de hoogte is gezet bij renderWorld
-	neg	ax
-	add	ax, SCREENH
-	shr	ax, 1		; and posY is in AX
-	
-	; Calculate offset of top-left corner
-	mov	dx, SCREENW
-	mul	dx		; AX = posY (in AX) * SCREENW
-	add	ax, bx		; BX contains posX, AX now contains start offset of rectangle
-	add	ax, offset screenBuffer
-	add	ax, [hardOffset] ;standaard offset in het begin ingesteld (word dat op 0 is gezet)
-	
-	; Draw upper horizontal line
-	mov	di, ax
-	mov	cx, [bp + 4][2]	; rect W
-	mov	al, 15	; color
-	cld
-	rep	stosb	; draw	
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw right vertical line	
-	mov		cx, [bp + 4][0]	; rect H
-	dec	di
-	@@:
-	mov	es:[di], al	; set pixel
-	add	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-	
-	; Draw bottom horizontal line
-	mov	cx, [bp+4][2]	; rect W
-	std	; set direction flag to decrement di and si
-	rep	stosb	; draw
-	;STOSB gaat de byte in AL (dus de kleur) 
-	;naar [ES:DI] of [ES:EDI] (dus de offset van de rectangle) verplaatsen
-	;en de direction flag aanpassen (increment als de flag clear is, zoals nu, anders decrement)
-	;En dit gaat hij CX keer doen (de breedte van de rechthoek)
-	
-	; Draw left vertical line
-	mov	cx, [bp + 4][0]	; rect H
-	inc di
-	@@:
-	mov	es:[di], al	; set pixel
-	sub	di, SCREENW	; jump to next pixel (on next line)
-	loop	@B
-
-	; We are done
-	pop	es
-	pop	di
-	pop	dx
-	pop	cx
-	pop	bx
-	pop	ax
-	; return
-	pop	bp
-	ret	4
-drawRect ENDP
 
 
 ; _------------------------------- END OF CODE ---------------------------------
