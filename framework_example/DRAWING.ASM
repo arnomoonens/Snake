@@ -28,8 +28,8 @@ blocCounter dw 1
 candyPos dw 305
 movCandy dw 0
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
-snake_size dw 5
-snake dw 5 dup(0)
+snake_size dw 4
+snake dw 200, 199, 198, 197
 
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace dw 0 ;last known place of our block (should be a list later on?)
@@ -72,10 +72,10 @@ main PROC NEAR
 	mov ah, 00h
 	int 1Ah
 	mov [lastTime], dx
-	mov snake[0], 200
-	mov snake[2], 199
-	mov snake[4], 198
-	mov snake[6], 197
+	;mov snake[0], 200
+	;mov snake[2], 199
+	;mov snake[4], 198
+	;mov snake[6], 197
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
@@ -204,10 +204,10 @@ updateScreen PROC NEAR
 	mul cx ;31 * 10 = 310
 	pop bx
 	add bx, ax ;60800 + 310 = 61110
-	mov dx, ds:[si]
-	mov ax, es:[bx]
-	cmp dx, ax
-	JE AFTERSTART
+	;mov dx, ds:[si]
+	;mov ax, es:[bx]
+	;cmp dx, ax
+	;JE AFTERSTART
 	xor dx, dx
 	xor ax, ax
 	xor ah, ah
@@ -283,35 +283,11 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov cx, 2
 	mov ax, 13h
 	int 10h
-;
-;	mov ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
-;	cmp ax, 0
-;	jnz @F
-;	sub [lastPlace], 32
-;	@@:
-;	cmp ax, 1
-;	jnz @F
-;	inc [lastPlace]
-;	@@:
-;	cmp ax, 2
-;	jnz @F
-;	add [lastPlace], 32
-;	@@:
-;	cmp ax, 3
-;	jnz @F
-;	dec [lastPlace]
-;	@@:
-;
-;	mov di, [lastPlace]
-;	add di, offset screenBuffer
-;	mov al, 15
-;    mov cx, [bp + 4][0]
-;	cld
-;	rep	stosb	; draw 
+
 	mov bx, 0
 	mov cx, snake_size
 	@loop:
-	mov di, snake[bx]
+	mov di, snake [bx]
 	add di, offset screenBuffer
 	mov al, 15
 	mov es:[di], al
@@ -389,36 +365,61 @@ updateSnake PROC NEAR
 updateSnake ENDP
 
 addToSnake PROC NEAR
+	push	bp
+	mov	bp, sp
 
 	push ax
 	push bx
 	push dx
 
-	;Verhoog de snake_size
-	;Vul de snake aan op positie snake_size * 2 - 2
-	;Aanvullen met dat dat op de vorige laatste positie stond - 1
-	mov bx, [snake_size] ;zet snake_size in bx
-	push bx ;push snake_size op stack
-	inc bx ;verhoog snake_size
-	inc [snake_size]
+	mov bx, [snake_size]
+	dec bx
 	mov ax, 2
 	mul bx
-	sub ax, 2 ;snake_size * 2 - 2 = nieuwe index in array
-	pop bx ;vraag oude snake_size
-	push ax ;push nieuwe index
-	mov ax, 2 
+	sub ax, 2
+	mov bx, ax
+	mov ax, snake[bx]
+	push ax
+
+	mov bx, [snake_size]
+	mov ax, 2
 	mul bx
-	sub ax, 2 ;oude snake_size * 2 - 2 = oude index in array
-	mov bx, ax ;zet die in bx
-	mov ax, snake[bx] ;lees wat er op oude index stond (positie)
+	sub ax, 2
+	mov bx, ax
+	pop ax
+
+	cmp [direction], 0
+	JNE @F
+	add ax, 320
+	jmp @done
+
+@@:
+	cmp [direction], 1
+	jne @F
 	dec ax ;trek er eentje van af (nieuwe positie)
-	pop bx ;vraag nieuwe index terug
-	mov snake[bx], ax ;zet nieuwe positie op nieuwe index
+	jmp @done
+
+@@:
+	cmp [direction], 2
+	jne @F
+	sub ax, 320
+	jmp @done
+
+@@:
+	cmp [direction], 3
+	jne @done
+	inc ax
+
+	@done:
+	mov snake[bx], ax
+	inc [snake_size]
 
 	pop dx
 	pop bx
 	pop ax
-	ret 0
+	
+	pop	bp
+	ret 2 
 addToSnake ENDP
 
 drawRandomRect PROC NEAR
