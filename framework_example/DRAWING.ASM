@@ -259,6 +259,7 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	call DrawSnake ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	call CheckCandyCollision
+	call CheckSelfCollision
 
 	call drawCandy
 
@@ -284,6 +285,35 @@ CheckCandyCollision PROC NEAR ;checks between head & candy: draws another candy 
 	ret 0
 CheckCandyCollision ENDP
 
+CheckSelfCollision PROC NEAR ;check collision of the head with the rest of the snake body
+	push 	bp
+	mov 	bp, sp
+
+	xor dx, dx
+	mov bx, [snake_size]
+	mov ax, 2
+	mul bx
+	mov dx, ax
+
+	mov ax, snake[0] ;position of the head
+	mov cx, 2
+	@loop:
+	mov bx, cx
+	mov bx, snake[bx]
+	cmp ax, bx
+	je @collision
+	add cx, 2
+	cmp cx, dx
+	jne @loop
+	jmp @done
+
+	@collision:
+	mov movCandy, 1 ;do something
+
+	@done:
+	pop 	bp
+	ret 	0
+CheckSelfCollision ENDP
 ;Tekent een blokske van 10 bij 10
 DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push	bp
@@ -465,8 +495,8 @@ drawCandy PROC NEAR
 	mov [movCandy], bx ;it's a new position now, reset to 0, so it doesn't change again
 	mov di, ax
 
-	call rand
-	mov bx, 256
+	call rand ;To get a random color for the candy
+	mov bx, 256 ;Is this the right number (highest number for a color)? and does this include black color(s)?
 	xor dx, dx
 	div bx
 	mov [candyColor], dl
@@ -478,9 +508,7 @@ drawCandy PROC NEAR
 	@draw:
 	add di, offset screenBuffer
 	mov al, [candyColor]
-    mov cx, 1
-	cld
-	rep	stosb	; draw 
+    mov es:[di], al	; draw 
 
 	pop bx
 	pop dx
@@ -491,7 +519,7 @@ drawCandy ENDP
 
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
-handleInput PROC NEAR
+handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up and you press right and down between 2 "draws", the snake will go from up to down (which isn't allowed)
 	push	es
 
 	mov	ax, seg __keysActive
