@@ -37,7 +37,7 @@ snake_size dw 5
 snake dw BLOCKS dup(0)
 
 direction dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
-lastPlace dw 0 ;last known place of our block (should be a list later on?)
+lastPlace dw 100 ;last known place of our block (should be a list later on?)
 lastTime dw 0 ;last remembered time
 delayTime dw 5
 
@@ -119,9 +119,6 @@ main PROC NEAR
 	; Exit to DOS
 	mov		ax, 4c00h	; exit to DOS function, return code 00h
 	int		21h			; call DOS
-
-	
-
 main ENDP
 
 ; Fades the active colors to black
@@ -572,7 +569,7 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 	cmp	al, 0
 	jz @F	; jump next
 
-	;call addToSnake
+	call addToSnake
 @@:
 	; finally, let's put the ESC key status as return value in AX
 	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
