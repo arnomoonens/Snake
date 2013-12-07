@@ -29,8 +29,9 @@ BLOCKS equ BLOCKSINROW * ROWS
 oldVideoMode	db ?
 hardOffset	dw 0
 blocCounter dw 1
-candyPos dw 305
-movCandy dw 0
+candyPos dw 0
+candyColor db 0
+movCandy dw 1
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
 snake_size dw 5
 snake dw BLOCKS dup(0)
@@ -257,9 +258,9 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	call updateSnake
 	call DrawSnake ;Tekent vierkant van 10 bij 10 erges vast op het scherm
 
-	;call CheckCollision
+	call CheckCandyCollision
 
-	call drawRandomRect
+	call drawCandy
 
 	; draw the screen buffer
 	call 	updateScreen
@@ -268,10 +269,25 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	ret	0
 renderWorld ENDP
 
+CheckCandyCollision PROC NEAR ;checks between head & candy: draws another candy somewhere else and increases snake length by 1 (not done yet)
+	push	bp
+	mov 	bp, sp
+
+	mov ax, snake[0] ;set ax to the position of the head of the snake
+	cmp [candyPos], ax ;compare position of the candy with the position of the head of the snake
+	jne @done ;If their positions aren't equal: do nothing
+	inc movCandy ;else: move the candy to a random place
+	;and increase the snake length
+
+	@done:
+	pop bp
+	ret 0
+CheckCandyCollision ENDP
+
 ;Tekent een blokske van 10 bij 10
 DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	push	bp
-	mov	bp, sp
+	mov		bp, sp
 
 	push ax
 	push dx
@@ -291,7 +307,7 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	mov bx, 0
 	mov cx, snake_size
 	@loop:
-	mov di, snake [bx]
+	mov di, snake[bx]
 	add di, offset screenBuffer
 	mov al, 15
 	mov es:[di], al
@@ -422,7 +438,7 @@ addToSnake PROC NEAR
 	ret 0
 addToSnake ENDP
 
-drawRandomRect PROC NEAR
+drawCandy PROC NEAR
 	push ax
 	push dx
 	push bx
@@ -441,13 +457,19 @@ drawRandomRect PROC NEAR
 
 	@newRand:
 	call rand
-	mov bx, 640
+	mov bx, BLOCKS
 	div bx
 	mov ax, dx
 	mov [candyPos], ax
 	mov bx, 0
 	mov [movCandy], bx ;it's a new position now, reset to 0, so it doesn't change again
 	mov di, ax
+
+	call rand
+	mov bx, 256
+	xor dx, dx
+	div bx
+	mov [candyColor], dl
 	JMP @draw
 
 	@oldRand:
@@ -455,7 +477,7 @@ drawRandomRect PROC NEAR
 
 	@draw:
 	add di, offset screenBuffer
-	mov al, 15
+	mov al, [candyColor]
     mov cx, 1
 	cld
 	rep	stosb	; draw 
@@ -465,7 +487,7 @@ drawRandomRect PROC NEAR
 	pop ax
 
 	ret 0
-drawRandomRect ENDP
+drawCandy ENDP
 
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
@@ -484,35 +506,32 @@ handleInput PROC NEAR
 	mov	al, es:[__keyboardState][SCANCODE_UP]	; test UP key
 	cmp	al, 0
 	jz @F	; jump next
-
-	;mov	ax, 32
-	;sub [hardOffset], ax
-	;sub [hardOffset], ax
+	cmp [direction], 2
+	je @F
 	mov [direction], 0
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
 	jz @F	; jump next
 
-	;mov	ax, 32
-	;add [hardOffset], ax
-	;add [hardOffset], ax
+	cmp [direction], 0
+	je @F
 	mov [direction], 2
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
 	cmp	al, 0
 	jz @F	; jump next
 
-	;dec [hardOffset]
-	;dec [hardOffset]
+	cmp [direction], 1
+	je @F
 	mov [direction], 3
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp	al, 0
 	jz @F	; jump next
 
-	;inc [hardOffset]
-	;inc [hardOffset]
+	cmp [direction], 3
+	je @F
 	mov [direction], 1
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_TAB]	; test TAB key
