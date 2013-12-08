@@ -496,9 +496,10 @@ drawCandy PROC NEAR
 	mov di, ax
 
 	call rand ;To get a random color for the candy
-	mov bx, 256 ;Is this the right number (highest number for a color)? and does this include black color(s)?
+	mov bx, 14 ;Is this the right number (highest number for a color)? and does this include black color(s)?
 	xor dx, dx
 	div bx
+	inc dx
 	mov [candyColor], dl
 	JMP @draw
 
