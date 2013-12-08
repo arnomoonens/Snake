@@ -6,7 +6,3 @@
 
 externdef rand:FAR
 externdef randInit:FAR
-
-; --- MACROS AND CONSTANTS -----------------------------------------------------
-
-RAND_SEED	equ 1521

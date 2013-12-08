@@ -9,7 +9,7 @@ INCLUDE rand.inc
 ; ----------------------------- DATA STARTS HERE -------------------------------
 .DATA        ; data segment, static variables
 
-randSeed	dw	RAND_SEED		; initial random seed
+randSeed	dw	0		; initial random seed is set in randInit
 randR250Idx	dw	0			; R250 index
 randR250Buf	dw	250 dup(?)	; buffer for R250 random generator
 
@@ -90,6 +90,11 @@ randInit PROC FAR
 	push	bx
 	push	cx
 	push	di
+	push dx
+
+	mov ah, 00h
+    int 1Ah ;get time since startup
+    mov [randSeed], dx ;and make that the seet for the random number generator
 	
 	; Clear index
 	mov	[randR250Idx], 0
@@ -118,6 +123,7 @@ randInit PROC FAR
 	loop	@randInit_loop1
 	
 	; And we are done
+	pop dx
 	pop	di
 	pop	cx
 	pop	bx
