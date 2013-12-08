@@ -275,7 +275,7 @@ CheckCandyCollision PROC NEAR ;checks between head & candy: draws another candy 
 	cmp [candyPos], ax ;compare position of the candy with the position of the head of the snake
 	jne @done ;If their positions aren't equal: do nothing
 	inc movCandy ;else: move the candy to a random place
-	;and increase the snake length
+	call addToSnake;and increase the snake length
 
 	@done:
 	pop bp
@@ -411,57 +411,8 @@ updateSnake PROC NEAR
 	ret 0
 updateSnake ENDP
 
-addToSnake PROC NEAR
-	push ax
-	push bx
-	push dx
-
-	mov bx, [snake_size]
-	dec bx
-	mov ax, 2
-	mul bx
-	sub ax, 2
-	mov bx, ax
-	mov ax, snake[bx]
-	push ax
-
-	mov bx, [snake_size]
-	mov ax, 2
-	mul bx
-	sub ax, 2
-	mov bx, ax
-	pop ax
-
-	cmp [direction], 0
-	JNE @F
-	add ax, 320
-	jmp @done
-
-@@:
-	cmp [direction], 1
-	jne @F
-	dec ax ;trek er eentje van af (nieuwe positie)
-	jmp @done
-
-@@:
-	cmp [direction], 2
-	jne @F
-	sub ax, 320
-	jmp @done
-
-@@:
-	cmp [direction], 3
-	jne @done
-	inc ax
-
-	@done:
-	mov snake[bx], ax
-	inc [snake_size]
-
-	pop dx
-	pop bx
-	pop ax
-	
+addToSnake PROC NEAR ;add a block to the snake (= increase snake size)
+	inc [snake_size] ;simply increase the variable. In the next execution of updateSnake, the block will be placed where the previous block was before
 	ret 0
 addToSnake ENDP
 
