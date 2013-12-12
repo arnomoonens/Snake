@@ -3,15 +3,14 @@ computersystemenproject
 
 Project voor Computersystemen: Snake maken met Assembly 8086
 
-#Huidige plan
-- We hebben een array van 64O elementen (32*20), een voor elk blokje (dat 10px lang en breed is)
-    - Mogelijke waarden voor een element:
-        - 0: er zit niks in
-        - 1: er zit een deel van de slang in
-        - 2: er zit een 'snoepje' in
-- De head en tail van de slang moet bijgehouden worden
-- Als de snake in een andere richting gaat, moet deze plaats(index in array) bijgehouden worden, zodat elk element van de snake ook in de juiste richting kan bewegen vanaf die plaats
-    - Dit kunnen meerdere plaatsen zijn
+#ToDo lijstje:
+-Buffer aanpassen om geknipper weg te werken
+-Ervoor zorgen dat speler naar boven en onder door het scherm kan
+-Ervoor zorgen dat de snake niet in zichzelf kan gaan
+-Scorebord
+-(Maybe): Eerst blokje in andere kleur
+-(Maybe): Witte blokjes aanpassen naar vormpjes met bitmaps
+
 
 #Handige links
 ##Ivm Assembly zelf

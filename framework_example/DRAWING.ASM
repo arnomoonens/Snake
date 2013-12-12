@@ -39,7 +39,7 @@ snake 			dw BLOCKS dup(0)
 direction 		dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
 lastPlace 		dw 100 ;last known place of our block (should be a list later on?)
 lastTime 		dw 0 ;last remembered time
-delayTime 		dw 5
+delayTime 		dw 2
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -248,6 +248,7 @@ updateScreen ENDP
 updateWorld PROC NEAR
 	ret 	0
 updateWorld ENDP
+
 renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
 	push	ax
 	
