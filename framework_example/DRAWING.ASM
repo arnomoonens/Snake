@@ -37,6 +37,7 @@ snake_size 		dw 5
 snake 			dw BLOCKS dup(0)
 
 direction 		dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
+newDirection	dw 1 ;new direction 'proposed' by handleInput
 lastPlace 		dw 100 ;last known place of our block (should be a list later on?)
 lastTime 		dw 0 ;last remembered time
 delayTime 		dw 3
@@ -384,6 +385,8 @@ updateSnake PROC NEAR
 	sub 	cx, 2
 	jmp 	@changeloop
 	@endloop:
+	mov ax, [newDirection]
+	mov [direction], ax
 	;Het eerste element bewegen wwe naargelang de [direction]
 	mov 	ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
 	cmp 	ax, 0
@@ -488,7 +491,7 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 	jz 		@F	; jump next
 	cmp 	[direction], 2
 	je 		@F
-	mov 	[direction], 0
+	mov 	[newDirection], 0
 @@:
 	mov		al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp		al, 0
@@ -496,7 +499,7 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 
 	cmp 	[direction], 0
 	je 		@F
-	mov 	[direction], 2
+	mov 	[newDirection], 2
 @@:
 	mov		al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
 	cmp		al, 0
@@ -504,7 +507,7 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 
 	cmp 	[direction], 1
 	je 		@F
-	mov 	[direction], 3
+	mov 	[newDirection], 3
 @@:
 	mov		al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp		al, 0
@@ -512,7 +515,7 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 
 	cmp 	[direction], 3
 	je 		@F
-	mov 	[direction], 1
+	mov 	[newDirection], 1
 @@:
 	; finally, let's put the ESC key status as return value in AX
 	mov		al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
