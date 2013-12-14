@@ -11,6 +11,7 @@
 include VIDEO.INC
 include RAND.INC
 include KEYB.INC
+include DRAWNUMB.INC
 
 ; --- MACROS AND CONSTANTS -----------------------------------------------------
 
@@ -19,8 +20,9 @@ SCREENW			equ 320
 SCREENH			equ 200
 BLOCKSINROW 	equ 32
 ROWS			equ 18
-SIZEOFBLOCK		equ 10
+SIZEOFBLOCK		equ 10 ;width and height of a block
 BLOCKS 			equ BLOCKSINROW * ROWS
+TEXTBUFFERSIZE	equ (20 - ROWS) * BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
 
 
 ; --- DATA SEGMENT -------------------------------------------------------------
@@ -36,22 +38,29 @@ movCandy 		dw 1
 snake_size 		dw 5
 snake 			dw BLOCKS dup(0)
 
-direction 		dw 1 ;0 for up, 1 for right, 2 for down, 3 for left
-newDirection	dw 1 ;new direction 'proposed' by handleInput
-lastPlace 		dw 100 ;last known place of our block (should be a list later on?)
-lastTime 		dw 0 ;last remembered time
+direction 		dw 1 				;0 for up, 1 for right, 2 for down, 3 for left
+newDirection	dw 1 				;new direction 'proposed' by handleInput
+lastPlace 		dw 100 				;last known place of our block (should be a list later on?)
+lastTime 		dw 0 				;last remembered time
 delayTime 		dw 3
 
+SCORE			dw 0
+SCORECHANGED	dw 1 				;used to know if you have to (re)draw the score or not
+CANDYVALUE		dw 1 				;number added to the score when colliding with a candy
+
 ; --- SCREEN BUFFER ------------------------------------------------------------
-.FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
+.FARDATA?							; segment that contains the screenBuffer for mode 13h drawing
 palette			db 768 dup(0)
 screenBuffer	db BLOCKS dup(?)	; the 64000 bytes for the screen
+
+; --- TEXT BUFFER ------------------------------------------------------------
+textBuffer	db TEXTBUFFERSIZE dup(?)
 
 ; --- CODE SEGMENT -------------------------------------------------------------
 .CODE        ; code segment
 main PROC NEAR
-	mov		ax, @data	; get data segment address
-	mov		ds, ax		; set DS to data segment
+	mov		ax, @data				; get data segment address
+	mov		ds, ax					; set DS to data segment
 
 	; Initialize random number generator
 	call	randInit
@@ -76,7 +85,7 @@ main PROC NEAR
 
 	;Voor het programma start, stel lastTime in
 	mov 	ah, 00h
-	int 	1Ah ;get time since startup
+	int 	1Ah 					;get time since startup
 	mov 	[lastTime], dx
 	;mov snake[0], 200
 	;mov snake[2], 199
@@ -86,26 +95,26 @@ main PROC NEAR
 	;call	updateWorld	; this would contain the game code (like AI)
 
 	mov 	ah, 00h
-    int 	1Ah ;get time since startup
+    int 	1Ah 					;get time since startup
 
 	push 	dx
 	sub 	dx, [lastTime]
-	cmp 	dx, delayTime ;if the difference between the last recorded time and the current time...
+	cmp 	dx, delayTime 			;if the difference between the last recorded time and the current time...
 	pop 	dx
-	JL 		@nextloop ;.. is less than delayTime, then only look for input
-	mov 	[lastTime], dx ;otherwise, change the lastTime and do your thing
+	JL 		@nextloop 				;.. is less than delayTime, then only look for input
+	mov 	[lastTime], dx 			;otherwise, change the lastTime and do your thing
 
-	call	renderWorld	; draws the world
+	call	renderWorld				; draws the world
 
-	call	handleInput	; handle user input
+	call	handleInput				; handle user input
 	cmp		al, 0
-	jz		@main_loop ;no signal to end the game, do another loop
-	jmp 	@game_end  ;otherwise: end of the game
+	jz		@main_loop 				;no signal to end the game, do another loop
+	jmp 	@game_end  				;otherwise: end of the game
 	
-	@nextloop: ;Not enough time has passed to move the blocks, but look for input to react to in the next 'useful' loop
+	@nextloop: 						;Not enough time has passed to move the blocks, but look for input to react to in the next 'useful' loop
 	call 	handleInput
 	cmp 	al, 0
-	jz 		@main_loop ;no signal to end the game, do another loop
+	jz 		@main_loop 				;no signal to end the game, do another loop
 
 	@game_end:
 	; Restore original keyboard handler
@@ -118,8 +127,8 @@ main PROC NEAR
 	call	setVideoMode
 	
 	; Exit to DOS
-	mov		ax, 4c00h	; exit to DOS function, return code 00h
-	int		21h			; call DOS
+	mov		ax, 4c00h				; exit to DOS function, return code 00h
+	int		21h						; call DOS
 main ENDP
 
 ; Fades the active colors to black
@@ -141,22 +150,22 @@ fadeToBlack PROC NEAR
 	ret 	0
 fadeToBlack ENDP
 
-; Clears the screen buffer to color 0
+											; Clears the screen buffer to color 0
 clearScreenBuffer PROC NEAR
 	push	ax
 	push	cx
 	push	di
 	push	es
 	
-	cld ;Clear direction flag
-	mov		ax, seg screenBuffer ; wijs met ax naar het segment van de screenBuffer
-	mov		es, ax ;zet es naar ax, dus de screenBuffer
+	cld 									;Clear direction flag
+	mov		ax, seg screenBuffer 			; wijs met ax naar het segment van de screenBuffer
+	mov		es, ax 							;zet es naar ax, dus de screenBuffer
 	mov		di, offset screenBuffer
-	mov		cx, BLOCKS / 2 ;Het 'proces' moet 32k keer uitgevoerd worden
-	xor		ax, ax ;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
-	rep		stosw ;herhaal stosw cx keer. Stosw zet es:di op ax
+	mov		cx, BLOCKS / 2 					;Het 'proces' moet 32k keer uitgevoerd worden
+	xor		ax, ax 							;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
+	rep		stosw 							;herhaal stosw cx keer. Stosw zet es:di op ax
 	
-	;Haal de overschreven waarden terug
+											;Haal de overschreven waarden terug
 	pop		es
 	pop		di
 	pop		cx
@@ -164,7 +173,110 @@ clearScreenBuffer PROC NEAR
 	ret		0
 clearScreenBuffer ENDP
 
-; Updates the screen (copies contents from screenBuffer to screen)
+updateTextScreen PROC NEAR
+	push	ax
+	push	cx
+	push	dx
+	push	si
+	push	di
+	push	ds
+	push	es
+	
+											; setup source and dest segments
+	mov		ax, seg textBuffer
+	mov		ds, ax
+	mov		si, offset textBuffer
+	mov		ax, 0a000h						; video memory
+	mov		es, ax
+	
+	mov 	ax, ROWS
+	xor 	dx, dx
+	mov 	bx, BLOCKSINROW
+	mul 	bx
+	mov 	bx, SIZEOFBLOCK
+	mul 	bx
+	mul 	bx
+	mov 	di, ax
+	
+	cld
+	mov		cx, TEXTBUFFERSIZE / 2
+	waitVBlank								; wait for a VB (modifies AX and DX)
+	rep		movsw							; blit to screen	
+	
+	pop		es
+	pop		ds
+	pop		di
+	pop		si
+	pop		dx
+	pop		cx
+	pop		ax
+	ret		0
+updateTextScreen ENDP
+
+drawScore PROC NEAR
+	push 	bp
+	mov 	bp, sp
+
+	push 	ax
+	push 	bx
+	push 	cx
+	push 	dx
+	push 	ds
+	push 	es
+
+	mov		ax, @data						; get data segment address
+	mov		ds, ax							; set DS to data segment
+
+	mov 	ax, seg textBuffer
+	mov 	es, ax
+
+	mov 	ax, offset textBuffer			;begin position to draw a number
+	add 	ax, 10
+	push 	ax
+		
+	mov 	ax, [SCORE]
+	mov 	cx, 10000
+	mov 	bx, 10
+
+@loop:
+	cmp 	cx, 1 							; vergelijk cx met 1
+	je 		@end 							; als cx 1 is, ga dan naar het laatste geval
+	xor 	dx, dx 							; zet dx op 0, anders probleem met deling hieronder
+	div 	cx 								; deel ax met cx, geeft 1 cijfer
+	mov		bx, ax							; load offset address of msg (in data segment)
+	pop 	ax
+	push 	ax
+	call	drawnumber
+	push 	dx 								; zet dx op de stack (bevat de rest van de deling)
+	xor 	dx, dx 							; zet dx op 0, anders probleem met deling hieronder
+	mov 	ax, cx							; ax wordt de cx, wat 10, 100,... is
+	mov 	bx, 10
+	DIV 	bx 								; deel ax door 10
+	mov 	cx, ax 							; resultaat komt terug in het originele
+	pop 	dx 								; krijg dx terug
+	pop 	ax
+	add 	ax, 39
+	push 	ax
+	mov 	ax, dx 							; ax wordt de rest van de deling
+	jmp 	@loop
+
+@end: 										; printen van laatste karakter
+	mov		bx, ax							; load offset address of msg (in data segment)
+	pop 	ax
+	call 	drawnumber
+
+	pop 	es
+	pop 	ds
+	pop 	dx
+	pop 	cx
+	pop 	bx
+	pop 	ax
+
+	pop 	bp
+	ret 	0
+drawScore ENDP
+
+											; Updates the screen (copies contents from screenBuffer to screen)
 updateScreen PROC NEAR
 	push	ax
 	push	cx
@@ -174,60 +286,60 @@ updateScreen PROC NEAR
 	push	ds
 	push	es
 	
-	; setup source and dest segments
+											; setup source and dest segments
 	mov		ax, seg screenBuffer
 	mov		ds, ax
 	mov		si, offset screenBuffer
-	mov		ax, 0a000h	; video memory
+	mov		ax, 0a000h						; video memory
 	mov		es, ax
-	xor		di, di	; start at pixel 0
+	xor		di, di							; start at pixel 0
 	waitVBlank
 	mov 	ax, 0a000h
 	mov 	es, ax
-	@displayloop: ;Bloknr
+@displayloop: 								; Bloknr
 	mov 	ax, si
-	sub 	ax, offset screenBuffer ;Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
+	sub 	ax, offset screenBuffer 		; Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
 	mov 	bx, BLOCKSINROW
-	@divloop: ;kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
+@divloop: 									; kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
 	cmp 	ax, bx
 	JL 		@done
 	sub 	ax, bx
 	inc 	cx
 	jmp 	@divloop
-	@done: ;na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
-	xchg 	ax, cx ;ax krijgt uitkomt van deling en cx krijgt de rest
+@done: 										; na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
+	xchg 	ax, cx 							; ax krijgt uitkomt van deling en cx krijgt de rest
 	mov 	bx, BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
-	push 	cx ;rest is 31
+	push 	cx 								; rest is 31
 	xor 	dx, dx
-	mul 	bx ;19*3200 = 60800
+	mul 	bx 								; 19*3200 = 60800
 	pop 	cx
 	push 	ax
 	mov 	ax, SIZEOFBLOCK
 	xor 	dx, dx
-	mul 	cx ;31 * 10 = 310
+	mul 	cx 								; 31 * 10 = 310
 	pop 	bx
-	add 	bx, ax ;60800 + 310 = 61110
-	;mov dx, ds:[si]
-	;mov ax, es:[bx]
-	;cmp dx, ax
-	;JE AFTERSTART
+	add 	bx, ax 							; 60800 + 310 = 61110
+	;mov 	dx, ds:[si]
+	;mov 	ax, es:[bx]
+	;cmp 	dx, ax
+	;JE 	AFTERSTART
 	xor 	dx, dx
 	xor 	ax, ax
 	xor 	ah, ah
 	xor 	al, al
-	START:
+START:
 	mov		di, bx
 	mov 	cx, SIZEOFBLOCK
 	mov		al, ds:[si]	; color
 	cld
-	rep		stosb	; draw 
+	rep		stosb							; draw 
 
-	add 	bx, SCREENW ;lijn opschuiven naar beneden
-	inc 	dx ;counter optellen
-	mov 	ax, SIZEOFBLOCK ;hoogte van het vierkant
+	add 	bx, SCREENW 					; lijn opschuiven naar beneden
+	inc 	dx 								; counter optellen
+	mov 	ax, SIZEOFBLOCK 				; hoogte van het vierkant
 	cmp 	dx, ax
 	JL 		START
-	AFTERSTART:
+AFTERSTART:
 	mov 	ax, BLOCKS
 	inc 	si
 	mov 	bx, si
@@ -250,7 +362,7 @@ updateWorld PROC NEAR
 	ret 	0
 updateWorld ENDP
 
-renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
+renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
 	push	ax
 	
 	call 	clearScreenBuffer
@@ -258,7 +370,7 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 	mov 	ax, [blocCounter]
 	push 	ax
 	call 	updateSnake
-	call 	DrawSnake ;Tekent vierkant van 10 bij 10 erges vast op het scherm
+	call 	DrawSnake 					; Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	call 	CheckCandyCollision
 	call 	CheckSelfCollision
@@ -267,27 +379,39 @@ renderWorld PROC NEAR ;zegt wat er allemaal in het scherm moet komen (hier does 
 
 	; draw the screen buffer
 	call 	updateScreen
+
+	cmp 	[SCORECHANGED], 0
+	jz 		@dontdrawscore
+	call 	drawScore
+	call 	updateTextScreen
+	mov 	[SCORECHANGED], 1
 	
+	@dontdrawscore:
 	pop		ax
 	ret		0
 renderWorld ENDP
 
-CheckCandyCollision PROC NEAR ;checks between head & candy: draws another candy somewhere else and increases snake length by 1 (not done yet)
+CheckCandyCollision PROC NEAR 			; checks between head & candy: draws another candy somewhere else and increases snake length by 1 (not done yet)
 	push	bp
 	mov 	bp, sp
+	push 	ax
 
-	mov 	ax, snake[0] ;set ax to the position of the head of the snake
-	cmp 	[candyPos], ax ;compare position of the candy with the position of the head of the snake
-	jne 	@done ;If their positions aren't equal: do nothing
-	inc 	movCandy ;else: move the candy to a random place
-	call 	addToSnake;and increase the snake length
+	mov 	ax, snake[0]				; set ax to the position of the head of the snake
+	cmp 	[candyPos], ax 				; compare position of the candy with the position of the head of the snake
+	jne 	@done 						; If their positions aren't equal: do nothing
+	inc 	movCandy 					; else: move the candy to a random place
+	mov 	ax, [CANDYVALUE]
+	add 	[SCORE], ax
+	mov 	[SCORECHANGED], 1
+	call 	addToSnake					; and increase the snake length
 
 	@done:
+	pop 	ax
 	pop 	bp
 	ret 	0
 CheckCandyCollision ENDP
 
-CheckSelfCollision PROC NEAR ;check collision of the head with the rest of the snake body
+CheckSelfCollision PROC NEAR 			; check collision of the head with the rest of the snake body
 	push 	bp
 	mov 	bp, sp
 
@@ -297,9 +421,9 @@ CheckSelfCollision PROC NEAR ;check collision of the head with the rest of the s
 	mul 	bx
 	mov 	dx, ax
 
-	mov 	ax, snake[0] ;position of the head
+	mov 	ax, snake[0] 				; position of the head
 	mov 	cx, 2
-	@loop:
+@loop:
 	mov 	bx, cx
 	mov 	bx, snake[bx]
 	cmp 	ax, bx
@@ -308,16 +432,14 @@ CheckSelfCollision PROC NEAR ;check collision of the head with the rest of the s
 	cmp 	cx, dx
 	jne 	@loop
 	jmp 	@done
-
-	@collision:
-	mov 	movCandy, 1 ;do something
-
-	@done:
+@collision:
+	mov 	movCandy, 1 				;do something
+@done:
 	pop 	bp
 	ret 	0
 CheckSelfCollision ENDP
-;Tekent een blokske van 10 bij 10
-DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
+
+DrawSnake PROC NEAR
 	push	bp
 	mov		bp, sp
 
@@ -356,7 +478,7 @@ DrawSnake PROC NEAR ;USES: /, CHANGES: ax, bx, cx, dx, es, al
 	pop 	ax
 
 	pop		bp
-	ret 	2 ;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
+	ret 	2 								;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
 DrawSnake ENDP
 
 updateSnake PROC NEAR
@@ -368,7 +490,7 @@ updateSnake PROC NEAR
 
 	mov 	cx, [snake_size]
 	xor 	dx, dx
-	;Begin bij het laatste element = snake_size * 2 - 2
+											;Begin bij het laatste element = snake_size * 2 - 2
 	mov 	ax, 2
 	MUL 	cx
 	mov 	cx, ax
@@ -381,14 +503,14 @@ updateSnake PROC NEAR
 	sub 	bx, 2
 	mov 	ax, snake[bx]
 	pop 	bx
-	mov 	snake[bx], ax ;zet het coordinaat van het huidg element op dat van het vorig element
+	mov 	snake[bx], ax 					; zet het coordinaat van het huidg element op dat van het vorig element
 	sub 	cx, 2
 	jmp 	@changeloop
 	@endloop:
 	mov ax, [newDirection]
 	mov [direction], ax
-	;Het eerste element bewegen wwe naargelang de [direction]
-	mov 	ax, [direction] ;0 for up, 1 for right, 2 for down, 3 for left
+											; Het eerste element bewegen wwe naargelang de [direction]
+	mov 	ax, [direction] 				; 0 for up, 1 for right, 2 for down, 3 for left
 	cmp 	ax, 0
 	jnz 	@F
 	mov 	bx, cx
@@ -418,8 +540,8 @@ updateSnake PROC NEAR
 	ret 	0
 updateSnake ENDP
 
-addToSnake PROC NEAR ;add a block to the snake (= increase snake size)
-	inc 	[snake_size] ;simply increase the variable. In the next execution of updateSnake, the block will be placed where the previous block was before
+addToSnake PROC NEAR 					;add a block to the snake (= increase snake size)
+	inc 	[snake_size] 				;simply increase the variable. In the next execution of updateSnake, the block will be placed where the previous block was before
 	ret 	0
 addToSnake ENDP
 
@@ -447,10 +569,10 @@ drawCandy PROC NEAR
 	mov 	ax, dx
 	mov 	[candyPos], ax
 	mov 	bx, 0
-	mov 	[movCandy], bx ;it's a new position now, reset to 0, so it doesn't change again
+	mov 	[movCandy], bx 				;cit's a new position now, reset to 0, so it doesn't change again
 	mov 	di, ax
 
-	call 	rand ;To get a random color for the candy
+	call 	rand 						; To get a random color for the candy
 	mov 	bx, 14
 	xor 	dx, dx
 	div 	bx
@@ -464,7 +586,7 @@ drawCandy PROC NEAR
 	@draw:
 	add 	di, offset screenBuffer
 	mov 	al, [candyColor]
-    mov 	es:[di], al	; draw 
+    mov 	es:[di], al					; draw 
 
 	pop 	bx
 	pop 	dx
@@ -473,8 +595,8 @@ drawCandy PROC NEAR
 	ret 	0
 drawCandy ENDP
 
-; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
-handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up and you press right and down between 2 "draws", the snake will go from up to down (which isn't allowed)
+														; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
+handleInput PROC NEAR 									;contains a bug: if, for example, the snake is going up and you press right and down between 2 "draws", the snake will go from up to down (which isn't allowed)
 	push	es
 
 	mov		ax, seg __keysActive
@@ -486,24 +608,24 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 	jz		@done		; no key pressed
 
 	; handle keys
-	mov		al, es:[__keyboardState][SCANCODE_UP]	; test UP key
+	mov		al, es:[__keyboardState][SCANCODE_UP]		; test UP key
 	cmp		al, 0
-	jz 		@F	; jump next
+	jz 		@F											; jump next
 	cmp 	[direction], 2
 	je 		@F
 	mov 	[newDirection], 0
 @@:
-	mov		al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
+	mov		al, es:[__keyboardState][SCANCODE_DOWN]		; test DOWN key
 	cmp		al, 0
-	jz 		@F	; jump next
+	jz 		@F											; jump next
 
 	cmp 	[direction], 0
 	je 		@F
 	mov 	[newDirection], 2
 @@:
-	mov		al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
+	mov		al, es:[__keyboardState][SCANCODE_LEFT]		; test LEFT key
 	cmp		al, 0
-	jz 		@F	; jump next
+	jz 		@F											; jump next
 
 	cmp 	[direction], 1
 	je 		@F
@@ -511,14 +633,14 @@ handleInput PROC NEAR ;contains a bug: if, for example, the snake is going up an
 @@:
 	mov		al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp		al, 0
-	jz 		@F	; jump next
+	jz 		@F											; jump next
 
 	cmp 	[direction], 3
 	je 		@F
 	mov 	[newDirection], 1
 @@:
-	; finally, let's put the ESC key status as return value in AX
-	mov		al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
+														; finally, let's put the ESC key status as return value in AX
+	mov		al, es:[__keyboardState][SCANCODE_ESC]		; test ESC
 
 @done:
 	pop		es
