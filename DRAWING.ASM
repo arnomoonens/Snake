@@ -40,7 +40,6 @@ snake 			dw BLOCKS dup(0)
 
 direction 		dw 1 				;0 for up, 1 for right, 2 for down, 3 for left
 newDirection	dw 1 				;new direction 'proposed' by handleInput
-lastPlace 		dw 100 				;last known place of our block (should be a list later on?)
 lastTime 		dw 0 				;last remembered time
 delayTime 		dw 3
 
@@ -294,8 +293,6 @@ updateScreen PROC NEAR
 	mov		es, ax
 	xor		di, di							; start at pixel 0
 	waitVBlank
-	mov 	ax, 0a000h
-	mov 	es, ax
 @displayloop: 								; Bloknr
 	mov 	ax, si
 	sub 	ax, offset screenBuffer 		; Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
@@ -319,10 +316,14 @@ updateScreen PROC NEAR
 	mul 	cx 								; 31 * 10 = 310
 	pop 	bx
 	add 	bx, ax 							; 60800 + 310 = 61110
+
+	;Check if block of pixels have to be drawn or not
+
 	;mov 	dx, ds:[si]
 	;mov 	ax, es:[bx]
 	;cmp 	dx, ax
 	;JE 	AFTERSTART
+
 	xor 	dx, dx
 	xor 	ax, ax
 	xor 	ah, ah
@@ -330,7 +331,7 @@ updateScreen PROC NEAR
 START:
 	mov		di, bx
 	mov 	cx, SIZEOFBLOCK
-	mov		al, ds:[si]	; color
+	mov		al, ds:[si]						; color
 	cld
 	rep		stosb							; draw 
 
@@ -432,8 +433,19 @@ CheckSelfCollision PROC NEAR 			; check collision of the head with the rest of t
 	cmp 	cx, dx
 	jne 	@loop
 	jmp 	@done
-@collision:
-	mov 	movCandy, 1 				;do something
+@collision:								;reset
+	mov 	[SCORE], 0
+	mov 	[SCORECHANGED], 1
+	mov 	[newDirection], 1
+	mov 	cx, [snake_size]
+	dec 	cx
+@resetloop:
+	mov 	bx, cx
+	mov 	snake[bx], 0
+	dec 	cx
+	cmp 	cx, 0
+	jge 	@resetloop
+	mov 	[snake_size], 5
 @done:
 	pop 	bp
 	ret 	0
