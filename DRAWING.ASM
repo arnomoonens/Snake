@@ -255,7 +255,7 @@ drawScore PROC NEAR
 	mov 	cx, ax 							; resultaat komt terug in het originele
 	pop 	dx 								; krijg dx terug
 	pop 	ax
-	add 	ax, 39
+	add 	ax, 23
 	push 	ax
 	mov 	ax, dx 							; ax wordt de rest van de deling
 	jmp 	@loop
