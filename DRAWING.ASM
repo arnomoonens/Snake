@@ -91,10 +91,6 @@ main PROC NEAR
 	mov 	ah, 00h
 	int 	1Ah 					;get time since startup
 	mov 	[lastTime], dx
-	;mov snake[0], 200
-	;mov snake[2], 199
-	;mov snake[4], 198
-	;mov snake[6], 197
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
@@ -432,6 +428,7 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	mov 	ax, [blocCounter]
 	push 	ax
 	call 	updateSnake
+	call 	CheckBorders
 	call 	DrawSnake 					; Tekent vierkant van 10 bij 10 erges vast op het scherm
 
 	call 	CheckCandyCollision
@@ -585,22 +582,22 @@ updateSnake PROC NEAR
 											; Het eerste element bewegen wwe naargelang de [direction]
 	mov 	ax, [direction] 				; 0 for up, 1 for right, 2 for down, 3 for left
 	cmp 	ax, 0
-	jnz 	@F
+	jne 	@F
 	mov 	bx, cx
 	sub 	snake[bx], 32
 	@@:
 	cmp 	ax, 1
-	jnz 	@F
+	jne 	@F
 	mov 	bx, cx
 	inc 	snake[bx]
 	@@:
 	cmp 	ax, 2
-	jnz 	@F
+	jne 	@F
 	mov 	bx, cx
 	add 	snake[bx], 32
 	@@:
 	cmp 	ax, 3
-	jnz 	@F
+	jne 	@F
 	mov 	bx, cx
 	dec 	snake[bx]
 	@@:
@@ -612,6 +609,72 @@ updateSnake PROC NEAR
 
 	ret 	0
 updateSnake ENDP
+
+CheckBorders PROC NEAR
+	push ax
+	push bx
+	push dx
+
+	mov ax, [direction]
+
+	cmp ax, 0 								;do something when going up
+	jne @F
+	mov ax, snake[0]
+	cmp ax, 0
+	JG @F 									;put snake head on new position
+	add ax, BLOCKS
+	mov snake[0], ax
+
+	@@:
+	cmp ax, 1 								;do something when going right
+	jne @F 									
+	mov ax, snake[0]
+	mov cx, ax
+	mov bx, 32
+	xor dx, dx
+	div bx
+	mov ax, dx
+	cmp ax, 31
+	jne @F
+	mov ax, cx
+	mov bx, BLOCKSINROW
+	dec bx
+	sub ax, bx
+	mov snake[0], ax
+
+	@@:
+	cmp ax, 2 								;do something when going down
+	jne @F
+	mov ax, snake[0]
+	cmp ax, BLOCKS
+	jl @F 									;put snake head on new position
+	sub ax, BLOCKS
+	mov snake[0], ax
+	
+	@@:
+	cmp ax, 3 								;do something when going right
+	jne @F 									
+	mov ax, snake[0]
+	mov cx, ax
+	mov bx, 32
+	xor dx, dx
+	div bx
+	mov ax, dx
+	cmp ax, 0
+	jne @F
+	mov ax, cx
+	mov bx, BLOCKSINROW
+	dec bx
+	add ax, bx
+	mov snake[0], ax									;put head on new position
+
+	@@:
+	pop dx
+	pop bx
+	pop ax
+
+	ret 0
+CheckBorders ENDP
 
 addToSnake PROC NEAR 					;add a block to the snake (= increase snake size)
 	inc 	[snake_size] 				;simply increase the variable. In the next execution of updateSnake, the block will be placed where the previous block was before
