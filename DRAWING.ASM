@@ -22,7 +22,8 @@ BLOCKSINROW 	equ 32
 ROWS			equ 18
 SIZEOFBLOCK		equ 10 ;width and height of a block
 BLOCKS 			equ BLOCKSINROW * ROWS
-TEXTBUFFERSIZE	equ (20 - ROWS) * BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
+SCREENBUFFERSIZE equ ROWS * BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
+TEXTBUFFERSIZE	equ 64000 - SCREENBUFFERSIZE
 
 
 ; --- DATA SEGMENT -------------------------------------------------------------
@@ -47,13 +48,15 @@ SCORE			dw 0
 SCORECHANGED	dw 1 				;used to know if you have to (re)draw the score or not
 CANDYVALUE		dw 1 				;number added to the score when colliding with a candy
 
+; --- TEXT BUFFER ------------------------------------------------------------
+textBuffer	db TEXTBUFFERSIZE dup(?)
+snakeBuffer	db BLOCKS dup(?)	; the 64000 bytes for the screen
+
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?							; segment that contains the screenBuffer for mode 13h drawing
 palette			db 768 dup(0)
-screenBuffer	db BLOCKS dup(?)	; the 64000 bytes for the screen
+screenBuffer	db SCREENBUFFERSIZE dup(?)	; the 64000 bytes for the screen
 
-; --- TEXT BUFFER ------------------------------------------------------------
-textBuffer	db TEXTBUFFERSIZE dup(?)
 
 ; --- CODE SEGMENT -------------------------------------------------------------
 .CODE        ; code segment
@@ -72,8 +75,10 @@ main PROC NEAR
 	
 	; clear video buffer
 	call	clearScreenBuffer
+	call 	clearSnakeBuffer
 
 	; draw the screen buffer
+	call 	snakeToScreenBuffer
 	call 	updateScreen
 	
 	; set mode 13h
@@ -160,7 +165,7 @@ clearScreenBuffer PROC NEAR
 	mov		ax, seg screenBuffer 			; wijs met ax naar het segment van de screenBuffer
 	mov		es, ax 							;zet es naar ax, dus de screenBuffer
 	mov		di, offset screenBuffer
-	mov		cx, BLOCKS / 2 					;Het 'proces' moet 32k keer uitgevoerd worden
+	mov		cx, SCREENBUFFERSIZE / 2 					;Het 'proces' moet 320 keer uitgevoerd worden
 	xor		ax, ax 							;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
 	rep		stosw 							;herhaal stosw cx keer. Stosw zet es:di op ax
 	
@@ -171,6 +176,28 @@ clearScreenBuffer PROC NEAR
 	pop		ax
 	ret		0
 clearScreenBuffer ENDP
+
+clearSnakeBuffer PROC NEAR
+	push	ax
+	push	cx
+	push	di
+	push	es
+	
+	cld 									;Clear direction flag
+	mov		ax, seg snakeBuffer 			; wijs met ax naar het segment van de screenBuffer
+	mov		es, ax 							;zet es naar ax, dus de screenBuffer
+	mov		di, offset snakeBuffer
+	mov		cx, BLOCKS / 2 					;Het 'proces' moet 320 keer uitgevoerd worden
+	xor		ax, ax 							;ax wordt op nul gezet, omdat deze waarde gebruikt wordt door stosw
+	rep		stosw 							;herhaal stosw cx keer. Stosw zet es:di op ax
+	
+											;Haal de overschreven waarden terug
+	pop		es
+	pop		di
+	pop		cx
+	pop		ax
+	ret		0
+clearSnakeBuffer ENDP
 
 updateTextScreen PROC NEAR
 	push	ax
@@ -275,7 +302,7 @@ drawScore PROC NEAR
 	ret 	0
 drawScore ENDP
 
-											; Updates the screen (copies contents from screenBuffer to screen)
+; Updates the screen (copies contents from screenBuffer to screen)
 updateScreen PROC NEAR
 	push	ax
 	push	cx
@@ -285,17 +312,49 @@ updateScreen PROC NEAR
 	push	ds
 	push	es
 	
-											; setup source and dest segments
+	; setup source and dest segments
 	mov		ax, seg screenBuffer
 	mov		ds, ax
 	mov		si, offset screenBuffer
-	mov		ax, 0a000h						; video memory
+	mov		ax, 0a000h	; video memory
 	mov		es, ax
-	xor		di, di							; start at pixel 0
-	waitVBlank
+	xor		di, di	; start at pixel 0
+	
+	cld
+	mov		cx, SCREENBUFFERSIZE / 2
+	waitVBlank	; wait for a VB (modifies AX and DX)
+	rep		movsw	; blit to screen	
+	
+	pop		es
+	pop		ds
+	pop		di
+	pop		si
+	pop		dx
+	pop		cx
+	pop		ax
+	ret		0
+updateScreen ENDP
+											; Updates the screen (copies contents from screenBuffer to screen)
+snakeToScreenBuffer PROC NEAR
+	push	ax
+	push	cx
+	push	dx
+	push	si
+	push	di
+	push	ds
+	push	es
+	
+											; setup source and dest segments
+	mov		ax, seg snakeBuffer
+	mov		ds, ax
+	mov		si, offset snakeBuffer
+	mov		ax, seg screenBuffer						; video memory
+	mov		es, ax
+	mov		di, offset screenBuffer						; start at pixel 0
+
 @displayloop: 								; Bloknr
 	mov 	ax, si
-	sub 	ax, offset screenBuffer 		; Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
+	sub 	ax, offset snakeBuffer 		; Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
 	mov 	bx, BLOCKSINROW
 @divloop: 									; kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
 	cmp 	ax, bx
@@ -330,6 +389,7 @@ updateScreen PROC NEAR
 	xor 	al, al
 START:
 	mov		di, bx
+	add 	di, offset screenBuffer
 	mov 	cx, SIZEOFBLOCK
 	mov		al, ds:[si]						; color
 	cld
@@ -344,7 +404,7 @@ AFTERSTART:
 	mov 	ax, BLOCKS
 	inc 	si
 	mov 	bx, si
-	sub 	bx, offset screenBuffer
+	sub 	bx, offset snakeBuffer
 	cmp 	bx, ax
 	JL 		@displayloop
 
@@ -357,7 +417,7 @@ AFTERSTART:
 	pop		cx
 	pop		ax
 	ret		0
-updateScreen ENDP
+snakeToScreenBuffer ENDP
 
 updateWorld PROC NEAR
 	ret 	0
@@ -367,6 +427,7 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	push	ax
 	
 	call 	clearScreenBuffer
+	call 	clearSnakeBuffer
 
 	mov 	ax, [blocCounter]
 	push 	ax
@@ -379,13 +440,15 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	call 	drawCandy
 
 	; draw the screen buffer
-	call 	updateScreen
+	call 	snakeToScreenBuffer
+
+	call updateScreen
 
 	cmp 	[SCORECHANGED], 0
 	jz 		@dontdrawscore
 	call 	drawScore
 	call 	updateTextScreen
-	mov 	[SCORECHANGED], 1
+	mov 	[SCORECHANGED], 1 			;has to be 0 in fact
 	
 	@dontdrawscore:
 	pop		ax
@@ -437,6 +500,7 @@ CheckSelfCollision PROC NEAR 			; check collision of the head with the rest of t
 	mov 	[SCORE], 0
 	mov 	[SCORECHANGED], 1
 	mov 	[newDirection], 1
+	mov 	[movCandy], 1
 	mov 	cx, [snake_size]
 	dec 	cx
 @resetloop:
@@ -462,19 +526,16 @@ DrawSnake PROC NEAR
 	push 	cx
 	push 	di
 
-	mov 	ax, seg screenBuffer
+	mov 	ax, seg snakeBuffer
 	mov 	es, ax
 	mov 	dx, offset palette
 	xor 	bx, bx
-	mov 	cx, 2
-	mov 	ax, 13h
-	int 	10h
 
 	mov 	bx, 0
 	mov 	cx, snake_size
 	@loop:
 	mov 	di, snake[bx]
-	add 	di, offset screenBuffer
+	add 	di, offset snakeBuffer
 	mov 	al, 15
 	mov 	es:[di], al
 	dec 	cx
@@ -562,7 +623,7 @@ drawCandy PROC NEAR
 	push 	dx
 	push 	bx
 
-	mov 	ax, seg screenBuffer
+	mov 	ax, seg snakeBuffer
 	mov 	es, ax
 	mov 	dx, offset palette
 	xor 	bx, bx
@@ -596,7 +657,7 @@ drawCandy PROC NEAR
 	mov 	di, [candyPos]
 
 	@draw:
-	add 	di, offset screenBuffer
+	add 	di, offset snakeBuffer
 	mov 	al, [candyColor]
     mov 	es:[di], al					; draw 
 
