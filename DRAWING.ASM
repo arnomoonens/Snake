@@ -590,15 +590,22 @@ CheckBorders PROC NEAR
 	sub ax, BLOCKS
 	mov snake[0], ax
 	
-	;@@:
-	;cmp ax, 3 								;do something when going left
-	;jne @F
-	;mov ax, snake[0]
-	;mov bx, 32
-	;div bx
-	;mov ax, dx
-	;cmp ax, 0
-	;jne @F 									;put head on new position
+	@@:
+	cmp ax, 3 								;do something when going right
+	jne @F 									
+	mov ax, snake[0]
+	mov cx, ax
+	mov bx, 32
+	xor dx, dx
+	div bx
+	mov ax, dx
+	cmp ax, 0
+	jne @F
+	mov ax, cx
+	mov bx, BLOCKSINROW
+	dec bx
+	add ax, bx
+	mov snake[0], ax									;put head on new position
 
 	@@:
 	pop dx
