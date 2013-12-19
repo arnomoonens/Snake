@@ -568,13 +568,17 @@ CheckBorders PROC NEAR
 	cmp ax, 1 								;do something when going right
 	jne @F 									
 	mov ax, snake[0]
+	mov cx, ax
 	mov bx, 32
 	xor dx, dx
 	div bx
 	mov ax, dx
-	cmp ax, 32
+	cmp ax, 31
 	jne @F
-	sub ax, BLOCKSINROW
+	mov ax, cx
+	mov bx, BLOCKSINROW
+	dec bx
+	sub ax, bx
 	mov snake[0], ax
 
 	@@:
