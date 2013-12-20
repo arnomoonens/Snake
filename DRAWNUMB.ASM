@@ -253,7 +253,7 @@ drawnumber PROC FAR
 	jmp 	@numberchosen
 @@:
 	cmp 	bx, 2
-	je 		@F
+	jne 	@F
 	mov 	si, offset NUMBER2
 	jmp 	@numberchosen
 @@:

@@ -98,12 +98,12 @@ main PROC NEAR
 	jz		@main_loop 				;no signal to end the game, do another loop
 	jmp 	@game_end  				;otherwise: end of the game
 	
-	@nextloop: 						;Not enough time has passed to move the blocks, but look for input to react to in the next 'useful' loop
+@nextloop: 							;Not enough time has passed to move the blocks, but look for input to react to in the next 'useful' loop
 	call 	handleInput
 	cmp 	al, 0
 	jz 		@main_loop 				;no signal to end the game, do another loop
 
-	@game_end:
+@game_end:
 	; Restore original keyboard handler
 	call	uninstallKeyboardHandler
 
@@ -286,8 +286,8 @@ updateScreen PROC NEAR
 	
 	cld
 	mov		cx, SCREENBUFFERSIZE / 2
-	waitVBlank	; wait for a VB (modifies AX and DX)
-	rep		movsw	; blit to screen	
+	waitVBlank								; wait for a VB (modifies AX and DX)
+	rep		movsw							; blit to screen	
 	
 	pop		es
 	pop		ds
@@ -298,7 +298,7 @@ updateScreen PROC NEAR
 	pop		ax
 	ret		0
 updateScreen ENDP
-											; Updates the screen (copies contents from screenBuffer to screen)
+											; Updates the screenBuffer (copies contents from snakeBuffer to screenBuffer)
 snakeToScreenBuffer PROC NEAR
 	push	ax
 	push	cx
@@ -339,13 +339,6 @@ snakeToScreenBuffer PROC NEAR
 	mul 	cx 								; 31 * 10 = 310
 	pop 	bx
 	add 	bx, ax 							; 60800 + 310 = 61110
-
-	;Check if block of pixels have to be drawn or not
-
-	;mov 	dx, ds:[si]
-	;mov 	ax, es:[bx]
-	;cmp 	dx, ax
-	;JE 	AFTERSTART
 
 	xor 	dx, dx
 	xor 	ax, ax
@@ -407,15 +400,15 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	; draw the screen buffer
 	call 	snakeToScreenBuffer
 
-	call updateScreen
+	call 	updateScreen
 
 	cmp 	[SCORECHANGED], 0
 	jz 		@dontdrawscore
 	call 	drawScore
 	call 	updateTextScreen
-	mov 	[SCORECHANGED], 1 			;has to be 0 in fact
+	mov 	[SCORECHANGED], 0 			;has to be 0 in fact
 	
-	@dontdrawscore:
+@dontdrawscore:
 	pop		ax
 	ret		0
 renderWorld ENDP
@@ -434,7 +427,7 @@ CheckCandyCollision PROC NEAR 			; checks between head & candy: draws another ca
 	mov 	[SCORECHANGED], 1
 	call 	addToSnake					; and increase the snake length
 
-	@done:
+@done:
 	pop 	ax
 	pop 	bp
 	ret 	0
@@ -497,7 +490,7 @@ DrawSnake PROC NEAR
 
 	mov 	bx, 0
 	mov 	cx, snake_size
-	@loop:
+@loop:
 	mov 	di, snake[bx]
 	add 	di, offset snakeBuffer
 	mov 	al, 15
@@ -532,7 +525,7 @@ updateSnake PROC NEAR
 	MUL 	cx
 	mov 	cx, ax
 	sub 	cx, 2
-	@changeloop:
+@changeloop:
 	cmp 	cx, 0
 	jz 		@endloop
 	mov 	bx, cx
@@ -543,7 +536,7 @@ updateSnake PROC NEAR
 	mov 	snake[bx], ax 					; zet het coordinaat van het huidg element op dat van het vorig element
 	sub 	cx, 2
 	jmp 	@changeloop
-	@endloop:
+@endloop:
 	mov ax, [newDirection]
 	mov [direction], ax
 											; Het eerste element bewegen wwe naargelang de [direction]
@@ -552,22 +545,22 @@ updateSnake PROC NEAR
 	jne 	@F
 	mov 	bx, cx
 	sub 	snake[bx], 32
-	@@:
+@@:
 	cmp 	ax, 1
 	jne 	@F
 	mov 	bx, cx
 	inc 	snake[bx]
-	@@:
+@@:
 	cmp 	ax, 2
 	jne 	@F
 	mov 	bx, cx
 	add 	snake[bx], 32
-	@@:
+@@:
 	cmp 	ax, 3
 	jne 	@F
 	mov 	bx, cx
 	dec 	snake[bx]
-	@@:
+@@:
 
 	pop 	dx
 	pop 	cx
@@ -592,7 +585,7 @@ CheckBorders PROC NEAR
 	add 	ax, BLOCKS
 	mov 	snake[0], ax
 
-	@@:
+@@:
 	cmp 	ax, 1 								;do something when going right
 	jne 	@F 									
 	mov 	ax, snake[0]
@@ -609,7 +602,7 @@ CheckBorders PROC NEAR
 	sub 	ax, bx
 	mov 	snake[0], ax
 
-	@@:
+@@:
 	cmp 	ax, 2 								;do something when going down
 	jne 	@F
 	mov 	ax, snake[0]
@@ -617,8 +610,7 @@ CheckBorders PROC NEAR
 	jl 		@F 									;put snake head on new position
 	sub 	ax, BLOCKS
 	mov 	snake[0], ax
-	
-	@@:
+@@:
 	cmp 	ax, 3 								;do something when going right
 	jne 	@F 									
 	mov 	ax, snake[0]
@@ -635,7 +627,7 @@ CheckBorders PROC NEAR
 	add 	ax, bx
 	mov 	snake[0], ax						;put head on new position
 
-	@@:
+@@:
 	pop 	dx
 	pop 	bx
 	pop 	ax
@@ -655,16 +647,12 @@ drawCandy PROC NEAR
 
 	mov 	ax, seg snakeBuffer
 	mov 	es, ax
-	xor 	bx, bx
-	mov 	cx, 2
-	mov 	ax, 13h
-	int 	10h
 
 	mov 	ax, [movCandy]
 	cmp 	ax, 0
 	JE 		@oldRand
 
-	@newRand:
+@newRand:
 	call 	rand
 	mov 	bx, BLOCKS
 	div 	bx
@@ -681,11 +669,9 @@ drawCandy PROC NEAR
 	inc 	dx
 	mov 	[candyColor], dl
 	JMP 	@draw
-
-	@oldRand:
+@oldRand:
 	mov 	di, [candyPos]
-
-	@draw:
+@draw:
 	add 	di, offset snakeBuffer
 	mov 	al, [candyColor]
     mov 	es:[di], al					; draw 
@@ -696,11 +682,9 @@ drawCandy PROC NEAR
 
 	ret 	0
 drawCandy ENDP
-
 														; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
 handleInput PROC NEAR 									;contains a bug: if, for example, the snake is going up and you press right and down between 2 "draws", the snake will go from up to down (which isn't allowed)
 	push	es
-
 	mov		ax, seg __keysActive
 	mov		es, ax
 
@@ -720,7 +704,6 @@ handleInput PROC NEAR 									;contains a bug: if, for example, the snake is go
 	mov		al, es:[__keyboardState][SCANCODE_DOWN]		; test DOWN key
 	cmp		al, 0
 	jz 		@F											; jump next
-
 	cmp 	[direction], 0
 	je 		@F
 	mov 	[newDirection], 2
@@ -736,12 +719,10 @@ handleInput PROC NEAR 									;contains a bug: if, for example, the snake is go
 	mov		al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp		al, 0
 	jz 		@F											; jump next
-
 	cmp 	[direction], 3
 	je 		@F
 	mov 	[newDirection], 1
-@@:
-														; finally, let's put the ESC key status as return value in AX
+@@:														; finally, let's put the ESC key status as return value in AX
 	mov		al, es:[__keyboardState][SCANCODE_ESC]		; test ESC
 
 @done:

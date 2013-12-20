@@ -4,7 +4,6 @@ computersystemenproject
 Project voor Computersystemen: Snake maken met Assembly 8086
 
 #ToDo lijstje:
-- Buffer aanpassen om geknipper weg te werken
 - Ervoor zorgen dat speler naar boven en onder door het scherm kan
 - Ervoor zorgen dat de candy niet op een deel van de snake gezet wordt
 - (Maybe): Eerst blokje in andere kleur
