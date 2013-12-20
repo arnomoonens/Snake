@@ -16,14 +16,14 @@ include DRAWNUMB.INC
 ; --- MACROS AND CONSTANTS -----------------------------------------------------
 
 ; Other constants	
-SCREENW			equ 320
-SCREENH			equ 200
-BLOCKSINROW 	equ 32
-ROWS			equ 18
-SIZEOFBLOCK		equ 10 ;width and height of a block
-BLOCKS 			equ BLOCKSINROW * ROWS
-SCREENBUFFERSIZE equ ROWS * BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
-TEXTBUFFERSIZE	equ 64000 - SCREENBUFFERSIZE
+SCREENW				equ 320
+SCREENH				equ 200
+BLOCKSINROW 		equ 32
+ROWS				equ 18
+SIZEOFBLOCK			equ 10 ;width and height of a block
+BLOCKS 				equ BLOCKSINROW * ROWS
+SCREENBUFFERSIZE 	equ ROWS * BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
+TEXTBUFFERSIZE		equ 64000 - SCREENBUFFERSIZE
 
 
 ; --- DATA SEGMENT -------------------------------------------------------------
@@ -611,67 +611,67 @@ updateSnake PROC NEAR
 updateSnake ENDP
 
 CheckBorders PROC NEAR
-	push ax
-	push bx
-	push dx
+	push 	ax
+	push 	bx
+	push 	dx
 
-	mov ax, [direction]
+	mov 	ax, [direction]
 
-	cmp ax, 0 								;do something when going up
-	jne @F
-	mov ax, snake[0]
-	cmp ax, 0
-	JG @F 									;put snake head on new position
-	add ax, BLOCKS
-	mov snake[0], ax
-
-	@@:
-	cmp ax, 1 								;do something when going right
-	jne @F 									
-	mov ax, snake[0]
-	mov cx, ax
-	mov bx, 32
-	xor dx, dx
-	div bx
-	mov ax, dx
-	cmp ax, 31
-	jne @F
-	mov ax, cx
-	mov bx, BLOCKSINROW
-	dec bx
-	sub ax, bx
-	mov snake[0], ax
+	cmp 	ax, 0 								;do something when going up
+	jne 	@F
+	mov 	ax, snake[0]
+	cmp 	ax, 0
+	JG 		@F 									;put snake head on new position
+	add 	ax, BLOCKS
+	mov 	snake[0], ax
 
 	@@:
-	cmp ax, 2 								;do something when going down
-	jne @F
-	mov ax, snake[0]
-	cmp ax, BLOCKS
-	jl @F 									;put snake head on new position
-	sub ax, BLOCKS
-	mov snake[0], ax
+	cmp 	ax, 1 								;do something when going right
+	jne 	@F 									
+	mov 	ax, snake[0]
+	mov 	cx, ax
+	mov 	bx, 32
+	xor 	dx, dx
+	div 	bx
+	mov 	ax, dx
+	cmp 	ax, 31
+	jne 	@F
+	mov 	ax, cx
+	mov 	bx, BLOCKSINROW
+	dec 	bx
+	sub 	ax, bx
+	mov 	snake[0], ax
+
+	@@:
+	cmp 	ax, 2 								;do something when going down
+	jne 	@F
+	mov 	ax, snake[0]
+	cmp 	ax, BLOCKS
+	jl 		@F 									;put snake head on new position
+	sub 	ax, BLOCKS
+	mov 	snake[0], ax
 	
 	@@:
-	cmp ax, 3 								;do something when going right
-	jne @F 									
-	mov ax, snake[0]
-	mov cx, ax
-	mov bx, 32
-	xor dx, dx
-	div bx
-	mov ax, dx
-	cmp ax, 0
-	jne @F
-	mov ax, cx
-	mov bx, BLOCKSINROW
-	dec bx
-	add ax, bx
-	mov snake[0], ax									;put head on new position
+	cmp 	ax, 3 								;do something when going right
+	jne 	@F 									
+	mov 	ax, snake[0]
+	mov 	cx, ax
+	mov 	bx, 32
+	xor 	dx, dx
+	div 	bx
+	mov 	ax, dx
+	cmp 	ax, 0
+	jne 	@F
+	mov 	ax, cx
+	mov 	bx, BLOCKSINROW
+	dec 	bx
+	add 	ax, bx
+	mov 	snake[0], ax						;put head on new position
 
 	@@:
-	pop dx
-	pop bx
-	pop ax
+	pop 	dx
+	pop 	bx
+	pop 	ax
 
 	ret 0
 CheckBorders ENDP

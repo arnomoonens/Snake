@@ -243,64 +243,50 @@ drawnumber PROC FAR
 	
 	;zet plaats om te lezen goed
 	cmp 	bx, 0
-	je 		@draw0
-	
-	cmp 	bx, 1
-	je 		@draw1
-	cmp 	bx, 2
-	je 		@draw2
-	cmp 	bx, 3
-	je 		@draw3
-	cmp 	bx, 4
-	je 		@draw4
-	cmp 	bx, 5
-	je 		@draw5
-	cmp 	bx, 6
-	je 		@draw6
-	cmp 	bx, 7
-	je 		@draw7
-	cmp 	bx, 8
-	je 		@draw8
-	cmp 	bx, 9
-	je 		@draw9
-	
-	@draw0:
+	jne 	@F
 	mov 	si, offset NUMBER0
 	jmp 	@numberchosen
-	
-	@draw1:
+@@:
+	cmp 	bx, 1
+	jne 	@F
 	mov 	si, offset NUMBER1
 	jmp 	@numberchosen
-	
-	@draw2:
+@@:
+	cmp 	bx, 2
+	je 		@F
 	mov 	si, offset NUMBER2
 	jmp 	@numberchosen
-	
-	@draw3:
+@@:
+	cmp 	bx, 3
+	jne 	@F
 	mov 	si, offset NUMBER3
 	jmp 	@numberchosen
-	
-	@draw4:
+@@:
+	cmp 	bx, 4
+	jne 	@F
 	mov 	si, offset NUMBER4
 	jmp 	@numberchosen
-	
-	@draw5:
+@@:
+	cmp 	bx, 5
+	jne 	@F
 	mov 	si, offset NUMBER5
 	jmp 	@numberchosen
-	
-	@draw6:
+@@:
+	cmp 	bx, 6
+	jne 	@F
 	mov 	si, offset NUMBER6
 	jmp 	@numberchosen
-	
-	@draw7:
+@@:
+	cmp 	bx, 7
+	jne 	@F
 	mov 	si, offset NUMBER7
 	jmp 	@numberchosen
-	
-	@draw8:
+@@:
+	cmp 	bx, 8
+	jne 	@F
 	mov 	si, offset NUMBER8
 	jmp 	@numberchosen
-	
-	@draw9:
+@@:
 	mov 	si, offset NUMBER9
 	
 	@numberchosen:
