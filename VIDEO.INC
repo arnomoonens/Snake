@@ -5,7 +5,6 @@
 ; --- EXPORTS ------------------------------------------------------------------
 
 externdef setVideoMode:FAR
-externdef setPalette:FAR, paletteInitFade:FAR, paletteNextFade:FAR
 
 ; --- MACROS AND CONSTANTS -----------------------------------------------------
 

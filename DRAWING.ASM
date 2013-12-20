@@ -1,8 +1,3 @@
-; ==============================================================================
-; Example for buffered drawing in mode 13h.
-; Example showing palette manipulation via port IO.
-; Example for a very generic game-loop.
-; ==============================================================================
 .MODEL large	; multiple data segments and multiple code segments
 .STACK 2048  	; stack
 
@@ -14,8 +9,6 @@ include KEYB.INC
 include DRAWNUMB.INC
 
 ; --- MACROS AND CONSTANTS -----------------------------------------------------
-
-; Other constants	
 SCREENW				equ 320
 SCREENH				equ 200
 BLOCKSINROW 		equ 32
@@ -24,7 +17,6 @@ SIZEOFBLOCK			equ 10 ;width and height of a block
 BLOCKS 				equ BLOCKSINROW * ROWS
 SCREENBUFFERSIZE 	equ ROWS * BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
 TEXTBUFFERSIZE		equ 64000 - SCREENBUFFERSIZE
-
 
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
@@ -54,9 +46,7 @@ snakeBuffer	db BLOCKS dup(?)	; the 64000 bytes for the screen
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?							; segment that contains the screenBuffer for mode 13h drawing
-palette			db 768 dup(0)
 screenBuffer	db SCREENBUFFERSIZE dup(?)	; the 64000 bytes for the screen
-
 
 ; --- CODE SEGMENT -------------------------------------------------------------
 .CODE        ; code segment
@@ -69,9 +59,6 @@ main PROC NEAR
 	
 	; Install our own keyboard handler
 	call	installKeyboardHandler
-
-	; fade to black
-	call	fadeToBlack
 	
 	; clear video buffer
 	call	clearScreenBuffer
@@ -130,25 +117,6 @@ main PROC NEAR
 	mov		ax, 4c00h				; exit to DOS function, return code 00h
 	int		21h						; call DOS
 main ENDP
-
-; Fades the active colors to black
-fadeToBlack PROC NEAR
-	push	ax
-
-	mov		ax, seg palette
-	push	ax
-	mov		ax, offset palette
-	push	ax
-	call	paletteInitFade
-@@:
-	waitVBlank
-	call	paletteNextFade
-	test	ax, ax
-	jnz		@B
-
-	pop		ax
-	ret 	0
-fadeToBlack ENDP
 
 											; Clears the screen buffer to color 0
 clearScreenBuffer PROC NEAR
@@ -525,7 +493,6 @@ DrawSnake PROC NEAR
 
 	mov 	ax, seg snakeBuffer
 	mov 	es, ax
-	mov 	dx, offset palette
 	xor 	bx, bx
 
 	mov 	bx, 0
@@ -688,7 +655,6 @@ drawCandy PROC NEAR
 
 	mov 	ax, seg snakeBuffer
 	mov 	es, ax
-	mov 	dx, offset palette
 	xor 	bx, bx
 	mov 	cx, 2
 	mov 	ax, 13h
