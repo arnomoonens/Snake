@@ -386,12 +386,12 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	call 	clearScreenBuffer
 	call 	clearSnakeBuffer
 
-	mov 	ax, [blocCounter]
-	push 	ax
+	;mov 	ax, [blocCounter]
+	;push 	ax
 	call 	updateSnake
-	call 	CheckBorders
 	call 	DrawSnake 					; Tekent vierkant van 10 bij 10 erges vast op het scherm
-
+	call 	CheckBorders
+	
 	call 	CheckCandyCollision
 	call 	CheckSelfCollision
 
@@ -409,7 +409,7 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	mov 	[SCORECHANGED], 0 			;has to be 0 in fact
 	
 @dontdrawscore:
-	pop		ax
+	;pop		ax
 	ret		0
 renderWorld ENDP
 
