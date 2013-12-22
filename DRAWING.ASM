@@ -381,13 +381,12 @@ updateWorld PROC NEAR
 updateWorld ENDP
 
 renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
-	push	ax
 	
 	call 	clearScreenBuffer
 	call 	clearSnakeBuffer
 
-	;mov 	ax, [blocCounter]
-	;push 	ax
+	mov 	ax, [blocCounter]
+	push 	ax
 	call 	updateSnake
 	call 	DrawSnake 					; Tekent vierkant van 10 bij 10 erges vast op het scherm
 	call 	CheckBorders
@@ -409,7 +408,7 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	mov 	[SCORECHANGED], 0 			;has to be 0 in fact
 	
 @dontdrawscore:
-	;pop		ax
+	pop		ax
 	ret		0
 renderWorld ENDP
 
@@ -508,7 +507,7 @@ DrawSnake PROC NEAR
 	pop 	ax
 
 	pop		bp
-	ret 	2 								;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
+	ret 	0								;zorgt ervoor dat de stack in orde gemaakt word bij returnen van functie
 DrawSnake ENDP
 
 updateSnake PROC NEAR
@@ -537,57 +536,26 @@ updateSnake PROC NEAR
 	sub 	cx, 2
 	jmp 	@changeloop
 @endloop:
-	mov ax, [newDirection]
-	mov [direction], ax
+	mov 	ax, [newDirection]
+	mov 	[direction], ax
 											; Het eerste element bewegen wwe naargelang de [direction]
 	mov 	ax, [direction] 				; 0 for up, 1 for right, 2 for down, 3 for left
 	cmp 	ax, 0
-	jne 	@F
-	mov 	bx, cx
-	sub 	snake[bx], 32
-@@:
-	cmp 	ax, 1
-	jne 	@F
-	mov 	bx, cx
-	inc 	snake[bx]
-@@:
-	cmp 	ax, 2
-	jne 	@F
-	mov 	bx, cx
-	add 	snake[bx], 32
-@@:
-	cmp 	ax, 3
-	jne 	@F
-	mov 	bx, cx
-	dec 	snake[bx]
-@@:
-
-	pop 	dx
-	pop 	cx
-	pop 	ax
-	pop 	bp
-
-	ret 	0
-updateSnake ENDP
-
-CheckBorders PROC NEAR
-	push 	ax
-	push 	bx
-	push 	dx
-
-	mov 	ax, [direction]
-
-	cmp 	ax, 0 								;do something when going up
-	jne 	@F
+	jne 	checkRight
 	mov 	ax, snake[0]
+	sub 	ax, BLOCKSINROW
 	cmp 	ax, 0
-	JG 		@F 									;put snake head on new position
+	jg 		normalUp
 	add 	ax, BLOCKS
 	mov 	snake[0], ax
+	jmp 	done
+	normalUp:
+	sub 	snake[0], BLOCKSINROW
+	jmp 	done
 
-@@:
-	cmp 	ax, 1 								;do something when going right
-	jne 	@F 									
+checkRight:
+	cmp 	ax, 1
+	jne 	checkDown
 	mov 	ax, snake[0]
 	mov 	cx, ax
 	mov 	bx, 32
@@ -595,45 +563,59 @@ CheckBorders PROC NEAR
 	div 	bx
 	mov 	ax, dx
 	cmp 	ax, 31
-	jne 	@F
+	jne 	normalRight
 	mov 	ax, cx
 	mov 	bx, BLOCKSINROW
 	dec 	bx
 	sub 	ax, bx
 	mov 	snake[0], ax
-
-@@:
-	cmp 	ax, 2 								;do something when going down
-	jne 	@F
+	jmp 	done
+normalRight:
+	inc 	snake[0]
+	jmp 	done
+checkDown:
+	cmp 	ax, 2
+	jne 	checkLeft
 	mov 	ax, snake[0]
+	add 	ax, BLOCKSINROW
 	cmp 	ax, BLOCKS
-	jl 		@F 									;put snake head on new position
+	jl 		normalDown
 	sub 	ax, BLOCKS
 	mov 	snake[0], ax
-@@:
-	cmp 	ax, 3 								;do something when going right
-	jne 	@F 									
+	jmp 	done
+normalDown:
+	add 	snake[0], BLOCKSINROW
+	jmp 	done
+checkLeft:
+	cmp 	ax, 3
+	jne 	done
 	mov 	ax, snake[0]
 	mov 	cx, ax
-	mov 	bx, 32
+	mov 	bx, BLOCKSINROW
 	xor 	dx, dx
 	div 	bx
 	mov 	ax, dx
 	cmp 	ax, 0
-	jne 	@F
+	jne 	normalLeft
 	mov 	ax, cx
 	mov 	bx, BLOCKSINROW
 	dec 	bx
 	add 	ax, bx
 	mov 	snake[0], ax						;put head on new position
+	jmp 	done
+normalLeft:
+	dec 	snake[0]
 
-@@:
+
+
+done:
 	pop 	dx
-	pop 	bx
+	pop 	cx
 	pop 	ax
+	pop 	bp
 
-	ret 0
-CheckBorders ENDP
+	ret 	0
+updateSnake ENDP
 
 addToSnake PROC NEAR 					;add a block to the snake (= increase snake size)
 	inc 	[snake_size] 				;simply increase the variable. In the next execution of updateSnake, the block will be placed where the previous block was before
