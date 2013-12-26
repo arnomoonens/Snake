@@ -296,7 +296,7 @@ drawnumber PROC FAR
 	;MOVSB
 	;ES:DI = videogeheugen, begin van doel pixel eindig aan eind pixel
 	;DS:SI = brongeheugen, begin bij offset van te tekenen nummer ga door tot 19*31 = 589
-	
+	add si, 2
 	@@:
 	mov 	cx, BLOCKWIDTH
 	rep 	movsb
