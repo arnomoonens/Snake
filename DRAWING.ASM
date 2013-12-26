@@ -320,14 +320,11 @@ snakeToScreenBuffer PROC NEAR
 	mov 	ax, si
 	sub 	ax, offset snakeBuffer 		; Formule bloknr->beginpixel (zie numbers file): (Afrondennaarbeneden(Bloknr/32) * 3200) + (rest(Bloknr/32) * 10)
 	mov 	bx, BLOCKSINROW
-@divloop: 									; kijkt simpelweg hoeveel keer bx in ax kan (gewoon div werkte niet)
-	cmp 	ax, bx
-	JL 		@done
-	sub 	ax, bx
-	inc 	cx
-	jmp 	@divloop
-@done: 										; na uitvoering hier: ax = 31, cx = 19 (want 639 = 32*19 + 31)
-	xchg 	ax, cx 							; ax krijgt uitkomt van deling en cx krijgt de rest
+
+	xor 	dx, dx
+	div 	bx
+	mov 	cx, dx
+@done: 										; na uitvoering hier: ax = 19, cx = 31 (want 639 = 32*19 + 31)
 	mov 	bx, BLOCKSINROW * SIZEOFBLOCK * SIZEOFBLOCK
 	push 	cx 								; rest is 31
 	xor 	dx, dx
@@ -352,9 +349,9 @@ START:
 	cld
 	rep		stosb							; draw 
 
-	add 	bx, SCREENW 					; lijn opschuiven naar beneden
-	inc 	dx 								; counter optellen
-	mov 	ax, SIZEOFBLOCK 				; hoogte van het vierkant
+	add 	bx, SCREENW 					; go one line down
+	inc 	dx 								; increase counter
+	mov 	ax, SIZEOFBLOCK 				; SIZEOFBLOCK is the height and the width of one block
 	cmp 	dx, ax
 	JL 		START
 AFTERSTART:
@@ -364,6 +361,8 @@ AFTERSTART:
 	sub 	bx, offset snakeBuffer
 	cmp 	bx, ax
 	JL 		@displayloop
+
+
 
 	xor 	al, al
 	pop		es
@@ -381,7 +380,6 @@ updateWorld PROC NEAR
 updateWorld ENDP
 
 renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier does een rechthoek dmv call drawRect)
-	
 	call 	clearScreenBuffer
 	call 	clearSnakeBuffer
 
@@ -541,11 +539,11 @@ updateSnake PROC NEAR
 	mov 	ax, snake[0]
 	sub 	ax, BLOCKSINROW
 	cmp 	ax, 0
-	jg 		normalUp
+	jge 	normalUp
 	add 	ax, BLOCKS
 	mov 	snake[0], ax
 	jmp 	done
-	normalUp:
+normalUp:
 	sub 	snake[0], BLOCKSINROW
 	jmp 	done
 
@@ -575,7 +573,7 @@ checkDown:
 	mov 	ax, snake[0]
 	add 	ax, BLOCKSINROW
 	cmp 	ax, BLOCKS
-	jl 		normalDown
+	jle 	normalDown
 	sub 	ax, BLOCKS
 	mov 	snake[0], ax
 	jmp 	done
