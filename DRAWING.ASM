@@ -389,7 +389,6 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	push 	ax
 	call 	updateSnake
 	call 	DrawSnake 					; Tekent vierkant van 10 bij 10 erges vast op het scherm
-	call 	CheckBorders
 	
 	call 	CheckCandyCollision
 	call 	CheckSelfCollision
@@ -573,6 +572,7 @@ checkRight:
 normalRight:
 	inc 	snake[0]
 	jmp 	done
+
 checkDown:
 	cmp 	ax, 2
 	jne 	checkLeft
@@ -586,6 +586,7 @@ checkDown:
 normalDown:
 	add 	snake[0], BLOCKSINROW
 	jmp 	done
+
 checkLeft:
 	cmp 	ax, 3
 	jne 	done
@@ -605,8 +606,6 @@ checkLeft:
 	jmp 	done
 normalLeft:
 	dec 	snake[0]
-
-
 
 done:
 	pop 	dx
