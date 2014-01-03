@@ -22,19 +22,19 @@ TEXTBUFFERSIZE		equ 64000 - SCREENBUFFERSIZE
 .DATA        ; data segment, variables
 
 oldVideoMode	db ?
-hardOffset		dw 0
-blocCounter 	dw 1
-candyPos 		dw 0
+
+candyPos 		dw 0 
 candyColor 		db 0
 movCandy 		dw 1
 ;0 if it has to be the last place as before (if it hasn't been eaten), 1 if it has to be the new place.
+
 snake_size 		dw 5
 snake 			dw BLOCKS dup(0)
 
 direction 		dw 1 				;0 for up, 1 for right, 2 for down, 3 for left
 newDirection	dw 1 				;new direction 'proposed' by handleInput
 lastTime 		dw 0 				;last remembered time
-delayTime 		dw 3
+delayTime 		dw 6
 
 SCORE			dw 0
 SCORECHANGED	dw 1 				;used to know if you have to (re)draw the score or not
@@ -383,8 +383,6 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	call 	clearScreenBuffer
 	call 	clearSnakeBuffer
 
-	mov 	ax, [blocCounter]
-	push 	ax
 	call 	updateSnake
 	call 	DrawSnake 					; Tekent vierkant van 10 bij 10 erges vast op het scherm
 	
@@ -405,7 +403,6 @@ renderWorld PROC NEAR 					; zegt wat er allemaal in het scherm moet komen (hier
 	mov 	[SCORECHANGED], 0 			;has to be 0 in fact
 	
 @dontdrawscore:
-	pop		ax
 	ret		0
 renderWorld ENDP
 
@@ -464,6 +461,7 @@ CheckSelfCollision PROC NEAR 			; check collision of the head with the rest of t
 	cmp 	cx, 0
 	jge 	@resetloop
 	mov 	[snake_size], 5
+	mov 	[delayTime], 6
 @done:
 	pop 	bp
 	ret 	0
@@ -701,7 +699,12 @@ handleInput PROC NEAR 									;contains a bug: if, for example, the snake is go
 	cmp 	[direction], 3
 	je 		@F
 	mov 	[newDirection], 1
-@@:														; finally, let's put the ESC key status as return value in AX
+@@:			
+	mov 	al, es:[__keyboardState][SCANCODE_TAB]
+	cmp 	al, 0
+	jz 		@F
+	dec 	[delayTime]
+@@:											; finally, let's put the ESC key status as return value in AX
 	mov		al, es:[__keyboardState][SCANCODE_ESC]		; test ESC
 
 @done:
